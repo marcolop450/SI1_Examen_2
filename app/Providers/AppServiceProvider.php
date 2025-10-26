@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL; 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,16 +25,13 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
-        // Configurar zona horaria globalmente
+        // Configurar zona horaria globalmente - FORZAR
         date_default_timezone_set('America/La_Paz');
+        Config::set('app.timezone', 'America/La_Paz');
         
-        // Configurar zona horaria en PostgreSQL
-        if (config('database.default') === 'pgsql') {
-            try {
-                DB::statement("SET TIME ZONE 'America/La_Paz'");
-            } catch (\Exception $e) {
-                // Ignorar errores durante migraciones o cuando DB no está disponible
-            }
-        }
+        // Configurar zona horaria en PostgreSQL - FORZAR en cada conexión
+        DB::listen(function ($event) {
+            DB::statement("SET TIME ZONE 'America/La_Paz'");
+        });
     }
 }
