@@ -10,9 +10,12 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Limpiar tabla primero
+        DB::table('users')->truncate();
+        
         DB::table('users')->insert([
             [
-                'id' => 1,
+                // NO pongas 'id' => 1, deja que PostgreSQL lo genere automáticamente
                 'nombre' => 'Administrador',
                 'apellido' => 'Sistema',
                 'telefono' => '70000000',
@@ -21,15 +24,14 @@ class UserSeeder extends Seeder
                 'correo' => 'admin@ficct.edu.bo',
                 'domicilio' => 'FICCT - UAGRM',
                 'username' => 'admin',
-                'password' => Hash::make('admin123'), // Contraseña: admin123
+                'password' => Hash::make('admin123'),
                 'activo' => true,
                 'ultimo_acceso' => null,
-                'id_rol' => 1, // Coordinador
+                'id_rol' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'id' => 2,
                 'nombre' => 'Juan',
                 'apellido' => 'Pérez',
                 'telefono' => '77777777',
@@ -38,15 +40,14 @@ class UserSeeder extends Seeder
                 'correo' => 'juan.perez@ficct.edu.bo',
                 'domicilio' => 'Santa Cruz',
                 'username' => 'jperez',
-                'password' => Hash::make('docente123'), // Contraseña: docente123
+                'password' => Hash::make('docente123'),
                 'activo' => true,
                 'ultimo_acceso' => null,
-                'id_rol' => 2, // Docente
+                'id_rol' => 2,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'id' => 3,
                 'nombre' => 'María',
                 'apellido' => 'González',
                 'telefono' => '76666666',
@@ -55,13 +56,16 @@ class UserSeeder extends Seeder
                 'correo' => 'maria.gonzalez@ficct.edu.bo',
                 'domicilio' => 'Santa Cruz',
                 'username' => 'mgonzalez',
-                'password' => Hash::make('autoridad123'), // Contraseña: autoridad123
+                'password' => Hash::make('autoridad123'),
                 'activo' => true,
                 'ultimo_acceso' => null,
-                'id_rol' => 3, // Autoridad
+                'id_rol' => 3,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
         ]);
+
+        // Sincronizar el sequence de PostgreSQL
+        DB::statement("SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users))");
     }
 }
