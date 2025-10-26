@@ -7,11 +7,8 @@ cmds = [
 cmds = [
     'composer install --no-dev --optimize-autoloader --no-interaction',
     'npm run build',
-    'php artisan storage:link || true',
-    'php artisan config:cache',
-    'php artisan route:cache',
-    'php artisan view:cache'
+    'php artisan storage:link || true'
 ]
 
 [start]
-cmd = 'php artisan config:clear && php artisan migrate --force && php -S 0.0.0.0:$PORT -t public'
+cmd = 'php artisan config:clear && php artisan cache:clear && php artisan migrate --force && php -S 0.0.0.0:$PORT -t public'
