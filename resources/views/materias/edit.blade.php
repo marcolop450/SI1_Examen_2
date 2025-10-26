@@ -7,25 +7,40 @@
 
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <form action="{{ route('materias.update', $materia->id) }}" method="POST">
+            <div class="bg-white overflow-hidden shadow-lg sm:rounded-lg">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Editar Materia: {{ $materia->codigo }}</h3>
+                    <p class="text-sm text-gray-600 mt-1">Modifique los datos de la materia según sea necesario</p>
+                </div>
+
+                <form action="{{ route('materias.update', $materia->id) }}" method="POST" class="p-6">
                     @csrf
                     @method('PUT')
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Código -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Código *</label>
-                            <input type="text" name="codigo" value="{{ old('codigo', $materia->codigo) }}" required
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Código <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="codigo" 
+                                   value="{{ old('codigo', $materia->codigo) }}" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                             @error('codigo')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Semestre -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Semestre *</label>
-                            <select name="semestre" required
-                                    style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Semestre <span class="text-red-500">*</span>
+                            </label>
+                            <select name="semestre" 
+                                    required
+                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                                 @for($i = 1; $i <= 10; $i++)
                                     <option value="{{ $i }}" {{ old('semestre', $materia->semestre) == $i ? 'selected' : '' }}>
                                         {{ $i }}º Semestre
@@ -33,63 +48,100 @@
                                 @endfor
                             </select>
                             @error('semestre')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        <div style="grid-column: span 2;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Nombre *</label>
-                            <input type="text" name="nombre" value="{{ old('nombre', $materia->nombre) }}" required
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                        <!-- Nombre -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Nombre <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="nombre" 
+                                   value="{{ old('nombre', $materia->nombre) }}" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                             @error('nombre')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Horas Teóricas -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Horas Teóricas *</label>
-                            <input type="number" name="horas_teoricas" value="{{ old('horas_teoricas', $materia->horas_teoricas) }}" min="0" required
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Horas Teóricas <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   name="horas_teoricas" 
+                                   value="{{ old('horas_teoricas', $materia->horas_teoricas) }}" 
+                                   min="0" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                             @error('horas_teoricas')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Horas Prácticas -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Horas Prácticas *</label>
-                            <input type="number" name="horas_practicas" value="{{ old('horas_practicas', $materia->horas_practicas) }}" min="0" required
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Horas Prácticas <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   name="horas_practicas" 
+                                   value="{{ old('horas_practicas', $materia->horas_practicas) }}" 
+                                   min="0" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                             @error('horas_practicas')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Créditos -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Créditos *</label>
-                            <input type="number" name="creditos" value="{{ old('creditos', $materia->creditos) }}" min="1" max="10" required
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Créditos <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   name="creditos" 
+                                   value="{{ old('creditos', $materia->creditos) }}" 
+                                   min="1" 
+                                   max="10" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                             @error('creditos')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        <div style="grid-column: span 2;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Contenido</label>
-                            <textarea name="contenido" rows="3"
-                                      style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">{{ old('contenido', $materia->contenido) }}</textarea>
+                        <!-- Contenido -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Contenido</label>
+                            <textarea name="contenido" 
+                                      rows="3"
+                                      class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">{{ old('contenido', $materia->contenido) }}</textarea>
                             @error('contenido')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
 
-                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                    <!-- Botones -->
+                    <div class="mt-8 pt-6 border-t border-gray-200 flex items-center gap-3">
                         <button type="submit" 
-                                style="background-color: #10b981; color: white; padding: 0.5rem 1.5rem; border-radius: 0.375rem; border: none; cursor: pointer;">
+                                class="inline-flex items-center px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
                             Actualizar Materia
                         </button>
                         <a href="{{ route('materias.index') }}" 
-                           style="background-color: #6b7280; color: white; padding: 0.5rem 1.5rem; border-radius: 0.375rem; text-decoration: none; display: inline-block;">
+                           class="inline-flex items-center px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
                             Cancelar
                         </a>
                     </div>

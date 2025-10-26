@@ -7,49 +7,80 @@
 
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <form action="{{ route('grupos.update', $grupo->id) }}" method="POST">
+            <div class="bg-white overflow-hidden shadow-lg sm:rounded-lg">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Editar Grupo: {{ $grupo->nombre }}</h3>
+                    <p class="text-sm text-gray-600 mt-1">Modifique los datos del grupo según sea necesario</p>
+                </div>
+
+                <form action="{{ route('grupos.update', $grupo->id) }}" method="POST" class="p-6">
                     @csrf
                     @method('PUT')
 
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Nombre *</label>
-                        <input type="text" name="nombre" value="{{ old('nombre', $grupo->nombre) }}" required
-                               style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
-                        @error('nombre')
-                            <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
-                        @enderror
+                    <div class="space-y-6">
+                        <!-- Nombre -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Nombre <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="nombre" 
+                                   value="{{ old('nombre', $grupo->nombre) }}" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                            @error('nombre')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Turno -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Turno <span class="text-red-500">*</span>
+                            </label>
+                            <select name="turno" 
+                                    required
+                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                                <option value="Mañana" {{ old('turno', $grupo->turno) == 'Mañana' ? 'selected' : '' }}>🌅 Mañana</option>
+                                <option value="Tarde" {{ old('turno', $grupo->turno) == 'Tarde' ? 'selected' : '' }}>☀️ Tarde</option>
+                                <option value="Noche" {{ old('turno', $grupo->turno) == 'Noche' ? 'selected' : '' }}>🌙 Noche</option>
+                            </select>
+                            @error('turno')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Capacidad Máxima -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Capacidad Máxima <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   name="capacidad_maxima" 
+                                   value="{{ old('capacidad_maxima', $grupo->capacidad_maxima) }}" 
+                                   min="1" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                            @error('capacidad_maxima')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
 
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Turno *</label>
-                        <select name="turno" required
-                                style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
-                            <option value="Mañana" {{ old('turno', $grupo->turno) == 'Mañana' ? 'selected' : '' }}>Mañana</option>
-                            <option value="Tarde" {{ old('turno', $grupo->turno) == 'Tarde' ? 'selected' : '' }}>Tarde</option>
-                            <option value="Noche" {{ old('turno', $grupo->turno) == 'Noche' ? 'selected' : '' }}>Noche</option>
-                        </select>
-                        @error('turno')
-                            <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Capacidad Máxima *</label>
-                        <input type="number" name="capacidad_maxima" value="{{ old('capacidad_maxima', $grupo->capacidad_maxima) }}" min="1" required
-                               style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
-                        @error('capacidad_maxima')
-                            <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                    <!-- Botones -->
+                    <div class="mt-8 pt-6 border-t border-gray-200 flex items-center gap-3">
                         <button type="submit" 
-                                style="background-color: #10b981; color: white; padding: 0.5rem 1.5rem; border-radius: 0.375rem; border: none; cursor: pointer;">
+                                class="inline-flex items-center px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
                             Actualizar Grupo
                         </button>
                         <a href="{{ route('grupos.index') }}" 
-                           style="background-color: #6b7280; color: white; padding: 0.5rem 1.5rem; border-radius: 0.375rem; text-decoration: none; display: inline-block;">
+                           class="inline-flex items-center px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
                             Cancelar
                         </a>
                     </div>

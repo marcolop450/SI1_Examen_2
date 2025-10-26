@@ -7,72 +7,106 @@
 
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <form action="{{ route('aulas.store') }}" method="POST">
+            <div class="bg-white overflow-hidden shadow-lg sm:rounded-lg">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Información del Aula</h3>
+                    <p class="text-sm text-gray-600 mt-1">Complete los datos para registrar una nueva aula</p>
+                </div>
+
+                <form action="{{ route('aulas.store') }}" method="POST" class="p-6">
                     @csrf
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Nombre -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Nombre *</label>
-                            <input type="text" name="nombre" value="{{ old('nombre') }}" required
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Nombre <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="nombre" 
+                                   value="{{ old('nombre') }}" 
+                                   required
                                    placeholder="Ej: Aula 301, Lab 1"
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                             @error('nombre')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Tipo -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Tipo *</label>
-                            <select name="tipo" required
-                                    style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Tipo <span class="text-red-500">*</span>
+                            </label>
+                            <select name="tipo" 
+                                    required
+                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                                 <option value="">Seleccione...</option>
                                 <option value="Aula Tradicional" {{ old('tipo') == 'Aula Tradicional' ? 'selected' : '' }}>Aula Tradicional</option>
                                 <option value="Laboratorio" {{ old('tipo') == 'Laboratorio' ? 'selected' : '' }}>Laboratorio</option>
                                 <option value="Auditorio" {{ old('tipo') == 'Auditorio' ? 'selected' : '' }}>Auditorio</option>
                             </select>
                             @error('tipo')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Capacidad -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Capacidad *</label>
-                            <input type="number" name="capacidad" value="{{ old('capacidad', 40) }}" min="1" required
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Capacidad <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   name="capacidad" 
+                                   value="{{ old('capacidad', 40) }}" 
+                                   min="1" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                             @error('capacidad')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Piso -->
                         <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Piso</label>
-                            <input type="text" name="piso" value="{{ old('piso') }}"
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Piso</label>
+                            <input type="text" 
+                                   name="piso" 
+                                   value="{{ old('piso') }}"
                                    placeholder="Ej: Piso 3"
-                                   style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                             @error('piso')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        <div style="grid-column: span 2;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Equipamiento</label>
-                            <textarea name="equipamiento" rows="3"
+                        <!-- Equipamiento -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Equipamiento</label>
+                            <textarea name="equipamiento" 
+                                      rows="3"
                                       placeholder="Ej: Proyector, Pizarra Digital, 30 Computadoras"
-                                      style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">{{ old('equipamiento') }}</textarea>
+                                      class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none">{{ old('equipamiento') }}</textarea>
                             @error('equipamiento')
-                                <span style="color: #ef4444; font-size: 0.875rem;">{{ $message }}</span>
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
 
-                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                    <!-- Botones -->
+                    <div class="mt-8 pt-6 border-t border-gray-200 flex items-center gap-3">
                         <button type="submit" 
-                                style="background-color: #3b82f6; color: white; padding: 0.5rem 1.5rem; border-radius: 0.375rem; border: none; cursor: pointer;">
+                                class="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
                             Guardar Aula
                         </button>
                         <a href="{{ route('aulas.index') }}" 
-                           style="background-color: #6b7280; color: white; padding: 0.5rem 1.5rem; border-radius: 0.375rem; text-decoration: none; display: inline-block;">
+                           class="inline-flex items-center px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
                             Cancelar
                         </a>
                     </div>

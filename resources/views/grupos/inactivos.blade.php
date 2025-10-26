@@ -1,56 +1,123 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Grupos Inactivos</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Grupos Inactivos
+        </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            @if(session('success'))<div style="background-color:#10b981;color:white;padding:1rem;border-radius:0.5rem;">{{ session('success') }}</div>@endif
-            @if(session('error'))<div style="background-color:#ef4444;color:white;padding:1rem;border-radius:0.5rem;">{{ session('error') }}</div>@endif
+            @if(session('success'))
+                <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 shadow-sm">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ session('success') }}
+                    </div>
+                </div>
+            @endif
 
-            <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem;">
-                    <h3 class="text-lg font-bold">Lista de Grupos Inactivos</h3>
-                    <a href="{{ route('grupos.index') }}" style="background-color:#6b7280;color:white;padding:0.5rem 1rem;border-radius:0.375rem;">← Volver a Activos</a>
+            @if(session('error'))
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 shadow-sm">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ session('error') }}
+                    </div>
+                </div>
+            @endif
+
+            <div class="bg-white overflow-hidden shadow-lg sm:rounded-lg">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Lista de Grupos Inactivos</h3>
+                            <p class="text-sm text-gray-600 mt-1">Grupos que han sido desactivados del sistema</p>
+                        </div>
+                        <a href="{{ route('grupos.index') }}" 
+                           class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition duration-150 shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            Volver a Activos
+                        </a>
+                    </div>
                 </div>
 
                 @if($grupos->count() > 0)
-                    <table style="width:100%;border-collapse:collapse;">
-                        <thead>
-                            <tr style="background-color:#f3f4f6;">
-                                <th style="padding:0.75rem;">Nombre</th>
-                                <th style="padding:0.75rem;">Turno</th>
-                                <th style="padding:0.75rem;">Capacidad Máxima</th>
-                                <th style="padding:0.75rem;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($grupos as $grupo)
-                                <tr style="border-bottom:1px solid #e5e7eb;background-color:#fef2f2;">
-                                    <td style="padding:0.75rem;">{{ $grupo->nombre }}</td>
-                                    <td style="padding:0.75rem;">{{ $grupo->turno }}</td>
-                                    <td style="padding:0.75rem;">{{ $grupo->capacidad_maxima }}</td>
-                                    <td style="padding:0.75rem;">
-                                        <div style="display:flex;gap:0.5rem;">
-                                            <form action="{{ route('grupos.reactivar', $grupo->id) }}" method="POST">
-                                                @csrf
-                                                <button type="submit" style="background-color:#10b981;color:white;padding:0.375rem 0.75rem;border-radius:0.375rem;"
-                                                        onclick="return confirm('¿Reactivar este grupo?')">✓ Reactivar</button>
-                                            </form>
-                                            <form action="{{ route('grupos.forceDestroy', $grupo->id) }}" method="POST">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" style="background-color:#dc2626;color:white;padding:0.375rem 0.75rem;border-radius:0.375rem;"
-                                                        onclick="return confirm('⚠️ Eliminar permanentemente este grupo?')">🗑️ Eliminar Permanente</button>
-                                            </form>
-                                        </div>
-                                    </td>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nombre</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Turno</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Capacidad Máxima</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($grupos as $grupo)
+                                    <tr class="bg-red-50 hover:bg-red-100 transition duration-150">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                                </svg>
+                                                <span class="font-semibold text-red-900">{{ $grupo->nombre }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-200 text-red-900">
+                                                {{ $grupo->turno }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm text-red-800 font-medium">{{ $grupo->capacidad_maxima }} estudiantes</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div class="flex items-center gap-3">
+                                                <!-- Botón Reactivar -->
+                                                <form action="{{ route('grupos.reactivar', $grupo->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" 
+                                                            class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition"
+                                                            onclick="return confirm('¿Estás seguro de reactivar este grupo?')">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                        Reactivar
+                                                    </button>
+                                                </form>
+
+                                                <!-- Botón Eliminar Permanentemente -->
+                                                <form action="{{ route('grupos.forceDestroy', $grupo->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" 
+                                                            class="inline-flex items-center px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white text-xs font-medium rounded transition"
+                                                            onclick="return confirm('⚠️ ADVERTENCIA: Esto eliminará el grupo PERMANENTEMENTE de la base de datos.\n\nNo se podrá recuperar.\n\n¿Estás COMPLETAMENTE seguro?')">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                        </svg>
+                                                        Eliminar Permanente
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 @else
-                    <div style="background-color:#dbeafe;color:#1e40af;padding:1rem;border-radius:0.5rem;text-align:center;">
-                        ✓ No hay grupos inactivos.
+                    <div class="p-12 text-center">
+                        <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">¡No hay grupos inactivos!</h3>
+                        <p class="text-gray-600">Todos los grupos están activos en el sistema</p>
                     </div>
                 @endif
             </div>
