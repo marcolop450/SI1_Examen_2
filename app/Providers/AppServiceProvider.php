@@ -30,8 +30,12 @@ class AppServiceProvider extends ServiceProvider
         Config::set('app.timezone', 'America/La_Paz');
         
         // Configurar zona horaria en PostgreSQL - FORZAR en cada conexión
-        DB::listen(function ($event) {
-            DB::statement("SET TIME ZONE 'America/La_Paz'");
-        });
+        try {
+            if (config('database.default') === 'pgsql') {
+                DB::unprepared("SET TIME ZONE 'America/La_Paz'");
+            }
+        } catch (\Exception $e) {
+            // Ignorar si falla
+        }
     }
 }
