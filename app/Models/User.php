@@ -41,13 +41,12 @@ class User extends Authenticatable
         ];
     }
 
-    // IMPORTANTE: Cambia el campo de autenticación
     public function username()
     {
-        return 'username'; // En lugar de 'email'
+        return 'username'; 
     }
 
-    // Relaciones
+    //Relaciones
     public function rol()
     {
         return $this->belongsTo(Rol::class, 'id_rol');

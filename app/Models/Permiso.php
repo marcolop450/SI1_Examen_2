@@ -24,7 +24,7 @@ class Permiso extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function roles()
     {
         return $this->belongsToMany(Rol::class, 'rol_permisos', 'id_permiso', 'id_rol')

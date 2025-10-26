@@ -18,7 +18,7 @@ class DocenteSeeder extends Seeder
                 'carga_horaria_maxima' => 80,
                 'carga_horaria_actual' => 0,
                 'activo' => true,
-                'id_usuario' => 2, // Usuario Juan Pérez
+                'id_usuario' => 2, 
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

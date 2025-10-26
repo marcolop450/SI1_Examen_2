@@ -11,20 +11,20 @@ use Illuminate\Support\Facades\DB;
 
 class DocenteController extends Controller
 {
-    // Listar todos los docentes
+    //Listar todos los docentes
     public function index()
     {
         $docentes = Docente::with('usuario')->where('activo', true)->get();
         return view('docentes.index', compact('docentes'));
     }
 
-    // Mostrar formulario de crear
+    //Mostrar formulario de crear
     public function create()
     {
         return view('docentes.create');
     }
 
-    // Guardar nuevo docente
+    //Guardar nuevo docente
     public function store(Request $request)
     {
         $request->validate([
@@ -45,7 +45,6 @@ class DocenteController extends Controller
         try {
             $nextId = DB::table('users')->max('id') + 1;
             DB::statement("ALTER SEQUENCE users_id_seq RESTART WITH $nextId");
-            // 1. Crear usuario
             $user = User::create([
                 'nombre' => $request->nombre,
                 'apellido' => $request->apellido,
@@ -54,12 +53,11 @@ class DocenteController extends Controller
                 'telefono' => $request->telefono,
                 'sexo' => $request->sexo,
                 'username' => strtolower(substr($request->nombre, 0, 1) . $request->apellido),
-                'password' => Hash::make('123456'), // Contraseña temporal
+                'password' => Hash::make('123456'), //Todo usuario que se cree, Tendra esta contraseña temporal
                 'activo' => true,
-                'id_rol' => 2, // Rol Docente
+                'id_rol' => 2, 
             ]);
 
-            // 2. Crear docente
             $docente = Docente::create([
                 'registro' => $request->registro,
                 'carrera' => $request->carrera,
@@ -71,7 +69,6 @@ class DocenteController extends Controller
                 'id_usuario' => $user->id,
             ]);
 
-            // 3. Registrar en bitácora
             Bitacora::create([
                 'accion' => 'Crear Docente',
                 'descripcion' => "Se creó el docente: {$request->nombre} {$request->apellido} (Registro: {$request->registro})",
@@ -92,21 +89,19 @@ class DocenteController extends Controller
         }
     }
 
-    // Mostrar un docente específico
+    //Mostrar
     public function show(string $registro)
     {
         $docente = Docente::with('usuario')->findOrFail($registro);
         return view('docentes.show', compact('docente'));
     }
 
-    // Mostrar formulario de editar
     public function edit(string $registro)
     {
         $docente = Docente::with('usuario')->findOrFail($registro);
         return view('docentes.edit', compact('docente'));
     }
 
-    // Actualizar docente
     public function update(Request $request, string $registro)
     {
         $docente = Docente::findOrFail($registro);
@@ -122,21 +117,18 @@ class DocenteController extends Controller
 
         DB::beginTransaction();
         try {
-            // Actualizar usuario
             $docente->usuario->update([
                 'nombre' => $request->nombre,
                 'apellido' => $request->apellido,
                 'telefono' => $request->telefono,
             ]);
 
-            // Actualizar docente
             $docente->update([
                 'carrera' => $request->carrera,
                 'especialidad' => $request->especialidad,
                 'carga_horaria_maxima' => $request->carga_horaria_maxima,
             ]);
 
-            // Bitácora
             Bitacora::create([
                 'accion' => 'Actualizar Docente',
                 'descripcion' => "Se actualizó el docente: {$request->nombre} {$request->apellido} (Registro: {$registro})",
@@ -157,26 +149,23 @@ class DocenteController extends Controller
         }
     }
 
-    // Eliminar (desactivar) docente
+    //Desactivar docente
     public function destroy(string $registro)
     {
         $docente = Docente::findOrFail($registro);
 
-        // Verificar si tiene horarios asignados
         if ($docente->horarios()->count() > 0) {
             return back()->with('error', 'No se puede eliminar el docente porque tiene horarios asignados.');
         }
 
         DB::beginTransaction();
         try {
-            // Desactivar en lugar de eliminar
             $docente->update(['activo' => false]);
             $docente->usuario->update(['activo' => false]);
 
-            // Bitácora
             Bitacora::create([
-                'accion' => 'Eliminar Docente',
-                'descripcion' => "Se eliminó el docente: {$docente->usuario->nombre} {$docente->usuario->apellido} (Registro: {$registro})",
+                'accion' => 'Desactivar Docente',
+                'descripcion' => "Se desactivo el docente: {$docente->usuario->nombre} {$docente->usuario->apellido} (Registro: {$registro})",
                 'tabla_afectada' => 'docentes',
                 'registro_afectado' => $registro,
                 'ip_direccion' => request()->ip(),
@@ -186,21 +175,19 @@ class DocenteController extends Controller
             DB::commit();
 
             return redirect()->route('docentes.index')
-                ->with('success', 'Docente eliminado exitosamente.');
+                ->with('success', 'Docente desactivado exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Error al eliminar docente: ' . $e->getMessage());
+            return back()->with('error', 'Error al desactivar docente: ' . $e->getMessage());
         }
     }
-    // Listar docentes inactivos
     public function inactivos()
     {
         $docentes = Docente::with('usuario')->where('activo', false)->get();
         return view('docentes.inactivos', compact('docentes'));
     }
 
-    // Reactivar docente
     public function reactivar(string $registro)
     {
         $docente = Docente::findOrFail($registro);
@@ -233,7 +220,7 @@ class DocenteController extends Controller
         }
     }
 
-    // Eliminar permanentemente docente
+    //Eliminar permanentemente
     public function forceDestroy(string $registro)
     {
         $docente = Docente::findOrFail($registro);

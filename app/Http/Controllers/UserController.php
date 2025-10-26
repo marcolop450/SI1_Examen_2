@@ -9,26 +9,26 @@ use App\Models\Bitacora;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Facades\Excel; //Para importar en el excel
 use App\Imports\UsersImport;
 
 class UserController extends Controller
 {
-    // Listar usuarios
+    //Listar usuarios
     public function index()
     {
         $usuarios = User::with('rol')->where('activo', true)->orderBy('nombre')->get();
         return view('usuarios.index', compact('usuarios'));
     }
 
-    // Formulario crear usuario
+    //Formulario crear usuario
     public function create()
     {
         $roles = Rol::all();
         return view('usuarios.create', compact('roles'));
     }
 
-    // Guardar usuario individual
+    //Guardar usuario individual
     public function store(Request $request)
     {
         $request->validate([
@@ -42,7 +42,7 @@ class UserController extends Controller
             'username' => 'required|string|max:50|unique:users,username',
             'password' => 'required|string|min:6',
             'id_rol' => 'required|exists:rols,id',
-            // Campos adicionales para docente
+            //Campos adicionales para docente
             'registro' => 'required_if:crear_docente,true|nullable|integer|unique:docentes,registro',
             'carrera' => 'required_if:crear_docente,true|nullable|string|max:100',
             'especialidad' => 'nullable|string|max:100',
@@ -52,7 +52,7 @@ class UserController extends Controller
 
         DB::beginTransaction();
         try {
-            // Obtener el siguiente ID disponible
+            //Obtener el siguiente ID disponible. Eje : (5) -> (6)
             $nextId = DB::table('users')->max('id') + 1;
             DB::statement("ALTER SEQUENCE users_id_seq RESTART WITH $nextId");
 
@@ -70,11 +70,11 @@ class UserController extends Controller
                 'id_rol' => $request->id_rol,
             ]);
 
-            // Verificar si el rol seleccionado es Docente
+            //Verificar si el rol seleccionado es Docente
             $rol = Rol::find($request->id_rol);
             
             if ($rol && strtolower($rol->nombre) === 'docente') {
-                // Crear registro en tabla docente automáticamente
+                //Crear registro en tabla docente automáticamente
                 $registro = $request->registro ?? rand(10000, 99999);
                 
                 Docente::create([
@@ -111,14 +111,14 @@ class UserController extends Controller
         }
     }
 
-    // Ver usuario
+    //Ver usuario
     public function show(string $id)
     {
         $usuario = User::with('rol')->findOrFail($id);
         return view('usuarios.show', compact('usuario'));
     }
 
-    // Formulario editar
+    //Formulario editar
     public function edit(string $id)
     {
         $usuario = User::findOrFail($id);
@@ -126,7 +126,7 @@ class UserController extends Controller
         return view('usuarios.edit', compact('usuario', 'roles'));
     }
 
-    // Actualizar usuario
+    //Actualizar usuario
     public function update(Request $request, string $id)
     {
         $usuario = User::findOrFail($id);
@@ -158,7 +158,7 @@ class UserController extends Controller
                 'id_rol' => $request->id_rol,
             ];
 
-            // Solo actualizar password si se proporcionó uno nuevo
+            //solo actualizar password si se proporcionó uno nuevo
             if ($request->filled('password')) {
                 $data['password'] = Hash::make($request->password);
             }
@@ -183,28 +183,28 @@ class UserController extends Controller
         }
     }
 
-    // Eliminar (desactivar) usuario
+    // Desactivar usuario
     public function destroy(string $id)
     {
         $usuario = User::findOrFail($id);
 
-        // No permitir eliminar al usuario actual
+        // No permitir desactivar al usuario actual
         if ($usuario->id == auth()->id()) {
-            return back()->with('error', 'No puedes eliminar tu propia cuenta.');
+            return back()->with('error', 'No puedes desactivar tu propia cuenta.');
         }
 
         DB::beginTransaction();
         try {
             $usuario->update(['activo' => false]);
 
-            // Si es docente, también desactivar el registro de docente
+            //Docente, también desactivar el registro de docente
             if ($usuario->docente) {
                 $usuario->docente->update(['activo' => false]);
             }
 
             Bitacora::create([
-                'accion' => 'Eliminar Usuario',
-                'descripcion' => "Se eliminó el usuario: {$usuario->username}",
+                'accion' => 'Desactivar Usuario',
+                'descripcion' => "Se desactivo el usuario: {$usuario->username}",
                 'tabla_afectada' => 'users',
                 'registro_afectado' => $id,
                 'ip_direccion' => request()->ip(),
@@ -212,21 +212,21 @@ class UserController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado exitosamente.');
+            return redirect()->route('usuarios.index')->with('success', 'Usuario desactivado exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Error al eliminar usuario: ' . $e->getMessage());
+            return back()->with('error', 'Error al desactivar usuario: ' . $e->getMessage());
         }
     }
 
-    // Mostrar formulario de carga masiva
+    //Mostrar formulario de carga masiva
     public function importForm()
     {
         return view('usuarios.import');
     }
 
-    // Procesar carga masiva Excel/CSV
+    //Procesar carga masiva Excel/CSV
     public function import(Request $request)
     {
         $request->validate([
@@ -263,7 +263,7 @@ class UserController extends Controller
         }
     }
 
-    // Descargar plantilla Excel
+    //plantilla Excel
     public function downloadTemplate()
     {
         $filename = 'plantilla_usuarios.xlsx';
@@ -272,11 +272,9 @@ class UserController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        // Crear plantilla
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
-        // Encabezados
         $sheet->setCellValue('A1', 'nombre');
         $sheet->setCellValue('B1', 'apellido');
         $sheet->setCellValue('C1', 'ci');
@@ -290,11 +288,11 @@ class UserController extends Controller
         $sheet->setCellValue('K1', 'fecha_ingreso');
         $sheet->setCellValue('L1', 'carga_horaria_maxima');
         
-        // Ejemplos
-        $sheet->setCellValue('A2', 'Juan');
-        $sheet->setCellValue('B2', 'Pérez');
+        //Ejemplo por defecto
+        $sheet->setCellValue('A2', 'Marco');
+        $sheet->setCellValue('B2', 'Lopez');
         $sheet->setCellValue('C2', '12345678');
-        $sheet->setCellValue('D2', 'juan.perez@ejemplo.com');
+        $sheet->setCellValue('D2', 'MarLop@ejemplo.com');
         $sheet->setCellValue('E2', '70123456');
         $sheet->setCellValue('F2', 'M');
         $sheet->setCellValue('G2', 'Docente');
@@ -310,29 +308,25 @@ class UserController extends Controller
             $writer->save('php://output');
         }, $filename, $headers);
     }
-    // Listar usuarios inactivos
     public function inactivos()
     {
         $usuarios = User::with('rol')->where('activo', false)->orderBy('nombre')->get();
         return view('usuarios.inactivos', compact('usuarios'));
     }
 
-    // Reactivar usuario
     public function reactivar(string $id)
     {
         $usuario = User::findOrFail($id);
 
-        // Verificar que el usuario esté inactivo
         if ($usuario->activo) {
             return back()->with('error', 'El usuario ya está activo.');
         }
 
         DB::beginTransaction();
         try {
-            // Reactivar usuario
             $usuario->update(['activo' => true]);
 
-            // Si es docente, también reactivar el registro de docente
+            //Docente, también reactivar el registro de docente
             if ($usuario->docente) {
                 $usuario->docente->update(['activo' => true]);
             }
@@ -356,17 +350,17 @@ class UserController extends Controller
         }
     }
 
-    // Eliminar permanentemente usuario
+    //Eliminar permanentemente usuario
     public function forceDestroy(string $id)
     {
         $usuario = User::findOrFail($id);
 
-        // No permitir eliminar al usuario actual
+        //No permitir eliminar al usuario actual
         if ($usuario->id == auth()->id()) {
             return back()->with('error', 'No puedes eliminar tu propia cuenta.');
         }
 
-        // Solo permitir eliminar usuarios inactivos
+        //Solo permitir eliminar usuarios inactivos
         if ($usuario->activo) {
             return back()->with('error', 'Solo puedes eliminar permanentemente usuarios inactivos. Desactívalo primero.');
         }
@@ -375,12 +369,11 @@ class UserController extends Controller
         try {
             $username = $usuario->username;
 
-            // Eliminar docente si existe
+            //Eliminar docente si existe
             if ($usuario->docente) {
                 $usuario->docente->delete();
             }
 
-            // Eliminar usuario permanentemente
             $usuario->delete();
 
             Bitacora::create([

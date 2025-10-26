@@ -25,7 +25,7 @@ class Rol extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function usuarios()
     {
         return $this->hasMany(User::class, 'id_rol');
@@ -35,6 +35,5 @@ class Rol extends Model
     {
         return $this->belongsToMany(Permiso::class, 'rol_permisos', 'id_rol', 'id_permiso')
                     ->withPivot('fecha_asignacion');
-                    // SIN ->withTimestamps()
     }
 }

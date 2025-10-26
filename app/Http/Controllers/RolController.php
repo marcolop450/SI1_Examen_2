@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class RolController extends Controller
 {
+    //Listar Roles
     public function index()
     {
         $roles = Rol::with('permisos')->get();
@@ -76,7 +77,7 @@ class RolController extends Controller
     {
         $rol = Rol::findOrFail($id);
 
-        // Validar que no sea un rol base
+        //Validar que no sea un rol base
         if (in_array($rol->nombre, ['Coordinador', 'Docente', 'Autoridad'])) {
             return back()->with('error', 'No se puede modificar un rol predeterminado del sistema.');
         }
@@ -94,7 +95,7 @@ class RolController extends Controller
                 'descripcion' => $request->descripcion,
             ]);
 
-            // Sincronizar permisos
+            //Sincronizar permisos
             if ($request->has('permisos')) {
                 $rol->permisos()->sync($request->permisos);
             } else {
@@ -123,13 +124,12 @@ class RolController extends Controller
     {
         $rol = Rol::findOrFail($id);
 
-        // Validar que no sea un rol base
         if (in_array($rol->nombre, ['Coordinador', 'Docente', 'Autoridad'])) {
-            return back()->with('error', 'No se puede eliminar un rol predeterminado del sistema.');
+            return back()->with('error', 'No se puede desactivar un rol predeterminado del sistema.');
         }
 
         if ($rol->usuarios()->count() > 0) {
-            return back()->with('error', 'No se puede eliminar el rol porque tiene usuarios asignados.');
+            return back()->with('error', 'No se puede desactivar el rol porque tiene usuarios asignados.');
         }
 
         DB::beginTransaction();
@@ -139,8 +139,8 @@ class RolController extends Controller
             $rol->delete();
 
             Bitacora::create([
-                'accion' => 'Eliminar Rol',
-                'descripcion' => "Se eliminó el rol: {$rolNombre}",
+                'accion' => 'Desactivar Rol',
+                'descripcion' => "Se desactivo el rol: {$rolNombre}",
                 'tabla_afectada' => 'rols',
                 'registro_afectado' => $id,
                 'ip_direccion' => request()->ip(),
@@ -148,11 +148,11 @@ class RolController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('roles.index')->with('success', 'Rol eliminado exitosamente.');
+            return redirect()->route('roles.index')->with('success', 'Rol desactivado exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Error al eliminar rol: ' . $e->getMessage());
+            return back()->with('error', 'Error al desactivar rol: ' . $e->getMessage());
         }
     }
 }

@@ -15,7 +15,7 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
     Login::class => [LogSuccessfulLogin::class],
     Logout::class => [LogSuccessfulLogout::class],
-    Failed::class => [LogFailedLogin::class],  // ← Agregar
+    Failed::class => [LogFailedLogin::class], 
     ];
 
     public function boot(): void

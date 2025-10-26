@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('observaciones')->nullable();
             $table->boolean('justificada')->default(false);
             
-            // Foreign Keys
+            //Foreign Keys
             $table->integer('id_docente');
             $table->foreignId('id_horario')->constrained('horarios')->onDelete('cascade');
             
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamps();
         });
         
-        // Constraints para validar estados y métodos
+        //Constraints para validar estados y métodos
         DB::statement("ALTER TABLE asistencias ADD CONSTRAINT check_estado_valido CHECK (estado IN ('A tiempo', 'Tardanza', 'Falta'))");
         DB::statement("ALTER TABLE asistencias ADD CONSTRAINT check_metodo_valido CHECK (metodo_registro IN ('manual', 'qr'))");
     }

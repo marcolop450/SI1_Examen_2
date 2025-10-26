@@ -12,7 +12,7 @@ class MateriaSeeder extends Seeder
         DB::table('materias')->insert([
             [
                 'nombre' => 'Sistemas de Información I',
-                'codigo' => 'SIS-101',
+                'codigo' => 'SI1',
                 'contenido' => 'Introducción a los sistemas de información',
                 'semestre' => 5,
                 'horas_teoricas' => 4,
@@ -24,7 +24,7 @@ class MateriaSeeder extends Seeder
             ],
             [
                 'nombre' => 'Programación I',
-                'codigo' => 'PRG-101',
+                'codigo' => 'PRG1',
                 'contenido' => 'Fundamentos de programación',
                 'semestre' => 1,
                 'horas_teoricas' => 3,
@@ -36,7 +36,7 @@ class MateriaSeeder extends Seeder
             ],
             [
                 'nombre' => 'Base de Datos I',
-                'codigo' => 'BDD-101',
+                'codigo' => 'BD1',
                 'contenido' => 'Diseño y modelado de bases de datos',
                 'semestre' => 3,
                 'horas_teoricas' => 4,

@@ -25,17 +25,15 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
-        // Configurar zona horaria globalmente - FORZAR
+        //zona horaria Bolivia
         date_default_timezone_set('America/La_Paz');
         Config::set('app.timezone', 'America/La_Paz');
-        
-        // Configurar zona horaria en PostgreSQL - FORZAR en cada conexión
         try {
             if (config('database.default') === 'pgsql') {
                 DB::unprepared("SET TIME ZONE 'America/La_Paz'");
             }
         } catch (\Exception $e) {
-            // Ignorar si falla
+
         }
     }
 }

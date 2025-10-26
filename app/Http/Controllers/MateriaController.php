@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class MateriaController extends Controller
 {
+    //Listar materias
     public function index()
     {
         $materias = Materia::where('activo', true)->orderBy('semestre')->get();
@@ -107,7 +108,7 @@ class MateriaController extends Controller
         $materia = Materia::findOrFail($id);
 
         if ($materia->horarios()->count() > 0) {
-            return back()->with('error', 'No se puede eliminar la materia porque tiene horarios asignados.');
+            return back()->with('error', 'No se puede desactivar la materia porque tiene horarios asignados.');
         }
 
         DB::beginTransaction();
@@ -115,8 +116,8 @@ class MateriaController extends Controller
             $materia->update(['activo' => false]);
 
             Bitacora::create([
-                'accion' => 'Eliminar Materia',
-                'descripcion' => "Se eliminó la materia: {$materia->nombre} ({$materia->codigo})",
+                'accion' => 'Desactivar Materia',
+                'descripcion' => "Se desactivo la materia: {$materia->nombre} ({$materia->codigo})",
                 'tabla_afectada' => 'materias',
                 'registro_afectado' => $id,
                 'ip_direccion' => request()->ip(),
@@ -124,21 +125,21 @@ class MateriaController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('materias.index')->with('success', 'Materia eliminada exitosamente.');
+            return redirect()->route('materias.index')->with('success', 'Materia desactivada exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Error al eliminar materia: ' . $e->getMessage());
+            return back()->with('error', 'Error al desactivar materia: ' . $e->getMessage());
         }
     }
-    // Listar materias inactivas
+    //Listar materias inactivas
     public function inactivos()
     {
         $materias = Materia::where('activo', false)->orderBy('semestre')->get();
         return view('materias.inactivos', compact('materias'));
     }
 
-    // Reactivar materia
+    //Reactivar materia
     public function reactivar(string $id)
     {
         $materia = Materia::findOrFail($id);
@@ -170,7 +171,7 @@ class MateriaController extends Controller
         }
     }
 
-    // Eliminar permanentemente materia
+    //Eliminar permanentemente materia
     public function forceDestroy(string $id)
     {
         $materia = Materia::findOrFail($id);

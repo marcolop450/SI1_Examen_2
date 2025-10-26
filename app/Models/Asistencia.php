@@ -31,7 +31,7 @@ class Asistencia extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function docente()
     {
         return $this->belongsTo(Docente::class, 'id_docente', 'registro');
@@ -42,7 +42,7 @@ class Asistencia extends Model
         return $this->belongsTo(Horario::class, 'id_horario');
     }
 
-    // Scopes útiles
+    //Scopes útiles
     public function scopeATiempo($query)
     {
         return $query->where('estado', 'A tiempo');

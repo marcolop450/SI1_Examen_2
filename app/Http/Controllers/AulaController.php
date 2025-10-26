@@ -9,17 +9,20 @@ use Illuminate\Support\Facades\DB;
 
 class AulaController extends Controller
 {
+    //Listar aulas solo activas
     public function index()
     {
         $aulas = Aula::where('activo', true)->orderBy('nombre')->get();
         return view('aulas.index', compact('aulas'));
     }
 
+    //Llama a create
     public function create()
     {
         return view('aulas.create');
     }
 
+    //Guardar nueva aula
     public function store(Request $request)
     {
         $request->validate([
@@ -30,6 +33,7 @@ class AulaController extends Controller
             'equipamiento' => 'nullable|string',
         ]);
 
+        //Se usa transcaccion para cuando existe errores haiga un Rollback
         DB::beginTransaction();
         try {
             $aula = Aula::create($request->all());
@@ -43,7 +47,7 @@ class AulaController extends Controller
                 'id_usuario' => auth()->id(),
             ]);
 
-            DB::commit();
+            DB::commit(); //Confirma y guarda
             return redirect()->route('aulas.index')->with('success', 'Aula creada exitosamente.');
 
         } catch (\Exception $e) {
@@ -52,6 +56,7 @@ class AulaController extends Controller
         }
     }
 
+    //Envia a mostrar con mas detalles
     public function show(string $id)
     {
         $aula = Aula::findOrFail($id);
@@ -75,7 +80,7 @@ class AulaController extends Controller
             'piso' => 'nullable|string|max:100',
             'equipamiento' => 'nullable|string',
         ]);
-
+        
         DB::beginTransaction();
         try {
             $aula->update($request->all());
@@ -98,12 +103,13 @@ class AulaController extends Controller
         }
     }
 
+    //Desactiva
     public function destroy(string $id)
     {
         $aula = Aula::findOrFail($id);
 
         if ($aula->horarios()->count() > 0) {
-            return back()->with('error', 'No se puede eliminar el aula porque tiene horarios asignados.');
+            return back()->with('error', 'No se puede desactivar el aula porque tiene horarios asignados.');
         }
 
         DB::beginTransaction();
@@ -111,8 +117,8 @@ class AulaController extends Controller
             $aula->update(['activo' => false]);
 
             Bitacora::create([
-                'accion' => 'Eliminar Aula',
-                'descripcion' => "Se eliminó el aula: {$aula->nombre}",
+                'accion' => 'Desactivar Aula',
+                'descripcion' => "Se desactivo el aula: {$aula->nombre}",
                 'tabla_afectada' => 'aulas',
                 'registro_afectado' => $id,
                 'ip_direccion' => request()->ip(),
@@ -120,21 +126,22 @@ class AulaController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('aulas.index')->with('success', 'Aula eliminada exitosamente.');
+            return redirect()->route('aulas.index')->with('success', 'Aula desactivada exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Error al eliminar aula: ' . $e->getMessage());
+            return back()->with('error', 'Error al desactivar aula: ' . $e->getMessage());
         }
     }
-    // Listar aulas inactivas
+
+    //Listar aulas inactivas
     public function inactivos()
     {
         $aulas = Aula::where('activo', false)->orderBy('nombre')->get();
         return view('aulas.inactivos', compact('aulas'));
     }
 
-    // Reactivar aula
+    //Reactivar aula
     public function reactivar(string $id)
     {
         $aula = Aula::findOrFail($id);
@@ -166,7 +173,7 @@ class AulaController extends Controller
         }
     }
 
-    // Eliminar permanentemente aula
+    //Eliminar permanentemente
     public function forceDestroy(string $id)
     {
         $aula = Aula::findOrFail($id);

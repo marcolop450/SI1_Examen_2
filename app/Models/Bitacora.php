@@ -28,7 +28,7 @@ class Bitacora extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function usuario()
     {
         return $this->belongsTo(User::class, 'id_usuario');
