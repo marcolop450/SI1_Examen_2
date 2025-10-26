@@ -24,7 +24,7 @@ class Grupo extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function materias()
     {
         return $this->belongsToMany(Materia::class, 'grupo_materias', 'id_grupo', 'id_materia')

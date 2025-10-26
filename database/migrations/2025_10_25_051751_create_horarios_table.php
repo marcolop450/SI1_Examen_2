@@ -17,11 +17,9 @@ return new class extends Migration
             $table->string('gestion', 10);
             $table->boolean('activo')->default(true);
             $table->text('observaciones')->nullable();
+            $table->boolean('es_virtual')->default(false); 
             
-            // SOLO ESTE CAMPO NUEVO
-            $table->boolean('es_virtual')->default(false); // ← Simple: true/false
-            
-            // Foreign Keys
+            //Foreign Keys
             $table->integer('id_docente');
             $table->foreignId('id_materia')->constrained('materias')->onDelete('restrict');
             $table->foreignId('id_grupo')->constrained('grupos')->onDelete('restrict');
@@ -32,16 +30,12 @@ return new class extends Migration
             $table->timestamps();
         });
         
-        // Constraint para validar horas
+        //Constraint para validar horas
         DB::statement('ALTER TABLE horarios ADD CONSTRAINT check_hora_valida CHECK (hora_inicio < hora_final)');
         
-        // Constraints para evitar conflictos de horarios
+        //Constraints para evitar conflictos de horarios
         Schema::table('horarios', function (Blueprint $table) {
-            // Evita que un docente tenga 2 clases al mismo tiempo
             $table->unique(['id_docente', 'dia', 'hora_inicio', 'gestion'], 'unique_docente_horario');
-            
-            // Evita que un aula tenga 2 clases al mismo tiempo
-            // NOTA: Este constraint ignora los registros donde id_aula es NULL (clases virtuales)
             $table->unique(['id_aula', 'dia', 'hora_inicio', 'gestion'], 'unique_aula_horario');
         });
     }

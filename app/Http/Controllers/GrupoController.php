@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class GrupoController extends Controller
 {
+    //Se enlista los grupos
     public function index()
     {
         $grupos = Grupo::where('activo', true)->orderBy('nombre')->get();
@@ -99,7 +100,7 @@ class GrupoController extends Controller
         $grupo = Grupo::findOrFail($id);
 
         if ($grupo->horarios()->count() > 0) {
-            return back()->with('error', 'No se puede eliminar el grupo porque tiene horarios asignados.');
+            return back()->with('error', 'No se puede desactivar el grupo porque tiene horarios asignados.');
         }
 
         DB::beginTransaction();
@@ -107,8 +108,8 @@ class GrupoController extends Controller
             $grupo->update(['activo' => false]);
 
             Bitacora::create([
-                'accion' => 'Eliminar Grupo',
-                'descripcion' => "Se eliminó el grupo: {$grupo->nombre}",
+                'accion' => 'Desactivar Grupo',
+                'descripcion' => "Se desactivo el grupo: {$grupo->nombre}",
                 'tabla_afectada' => 'grupos',
                 'registro_afectado' => $id,
                 'ip_direccion' => request()->ip(),
@@ -116,21 +117,22 @@ class GrupoController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('grupos.index')->with('success', 'Grupo eliminado exitosamente.');
+            return redirect()->route('grupos.index')->with('success', 'Grupo desactivado exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Error al eliminar grupo: ' . $e->getMessage());
+            return back()->with('error', 'Error al desactivar grupo: ' . $e->getMessage());
         }
     }
-    // Listar grupos inactivos
+
+    //Listar grupos inactivos
     public function inactivos()
     {
         $grupos = Grupo::where('activo', false)->orderBy('nombre')->get();
         return view('grupos.inactivos', compact('grupos'));
     }
 
-    // Reactivar grupo
+    //Reactivar
     public function reactivar(string $id)
     {
         $grupo = Grupo::findOrFail($id);
@@ -162,7 +164,7 @@ class GrupoController extends Controller
         }
     }
 
-    // Eliminar permanentemente grupo
+    //Eliminar permanentemente grupo
     public function forceDestroy(string $id)
     {
         $grupo = Grupo::findOrFail($id);

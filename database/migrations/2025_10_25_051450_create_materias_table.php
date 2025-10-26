@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
         });
         
-        // Constraint para validar semestre entre 1 y 10
+        //Constraint para validar semestre entre 1 y 10
         DB::statement('ALTER TABLE materias ADD CONSTRAINT check_semestre CHECK (semestre BETWEEN 1 AND 10)');
     }
 

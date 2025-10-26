@@ -31,7 +31,7 @@ class Materia extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function docentes()
     {
         return $this->belongsToMany(Docente::class, 'docente_materias', 'id_materia', 'id_docente')

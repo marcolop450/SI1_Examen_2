@@ -24,7 +24,7 @@ class LogFailedLogin
             'tabla_afectada' => 'users',
             'registro_afectado' => null,
             'ip_direccion' => request()->ip(),
-            'id_usuario' => 1, // Usuario sistema
+            'id_usuario' => 1, 
         ]);
     }
 }

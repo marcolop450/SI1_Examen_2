@@ -10,12 +10,10 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Limpiar tabla primero
         DB::table('users')->truncate();
         
         DB::table('users')->insert([
             [
-                // NO pongas 'id' => 1, deja que PostgreSQL lo genere automáticamente
                 'nombre' => 'Administrador',
                 'apellido' => 'Sistema',
                 'telefono' => '70000000',
@@ -65,7 +63,6 @@ class UserSeeder extends Seeder
             ],
         ]);
 
-        // Sincronizar el sequence de PostgreSQL
         DB::statement("SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users))");
     }
 }

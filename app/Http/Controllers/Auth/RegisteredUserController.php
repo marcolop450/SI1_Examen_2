@@ -45,7 +45,7 @@ class RegisteredUserController extends Controller
             'correo' => $request->correo,
             'ci' => $request->ci,
             'password' => Hash::make($request->password),
-            'id_rol' => 1, // Ajusta según tu lógica
+            'id_rol' => 3, //Aqui se decide el rol al registrar (1:Admin, 2:Docente, 3:Autoridad)
             'activo' => true,
         ]);
 

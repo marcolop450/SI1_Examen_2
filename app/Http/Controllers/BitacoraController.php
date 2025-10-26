@@ -11,7 +11,7 @@ class BitacoraController extends Controller
     {
         $query = Bitacora::with('usuario')->orderBy('fecha', 'desc');
 
-        // Filtros
+        //Filtros
         if ($request->filled('usuario')) {
             $query->where('id_usuario', $request->usuario);
         }

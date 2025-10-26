@@ -26,7 +26,7 @@ class Aula extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function horarios()
     {
         return $this->hasMany(Horario::class, 'id_aula');

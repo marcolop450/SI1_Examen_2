@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 
 class RolPermisoController extends Controller
 {
+    //Se dejara para el siguiente ciclo (Se creo junto con las migraciones)
     /**
      * Display a listing of the resource.
      */

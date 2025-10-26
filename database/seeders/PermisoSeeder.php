@@ -19,20 +19,19 @@ class PermisoSeeder extends Seeder
             ['nombre' => 'ver_horario_propio', 'descripcion' => 'Ver horario asignado', 'fecha_creacion' => now()],
         ]);
 
-        // Asignar permisos a roles
         DB::table('rol_permisos')->insert([
-            // Coordinador (id: 1) - Todos los permisos
+            //Coordinador, Todos los permisos
             ['id_rol' => 1, 'id_permiso' => 1, 'fecha_asignacion' => now()],
             ['id_rol' => 1, 'id_permiso' => 2, 'fecha_asignacion' => now()],
             ['id_rol' => 1, 'id_permiso' => 3, 'fecha_asignacion' => now()],
             ['id_rol' => 1, 'id_permiso' => 4, 'fecha_asignacion' => now()],
             ['id_rol' => 1, 'id_permiso' => 5, 'fecha_asignacion' => now()],
             
-            // Docente (id: 2) - Permisos limitados
+            // Docente, Permisos limitados
             ['id_rol' => 2, 'id_permiso' => 6, 'fecha_asignacion' => now()],
             ['id_rol' => 2, 'id_permiso' => 7, 'fecha_asignacion' => now()],
             
-            // Autoridad (id: 3) - Solo reportes
+            // Autoridad, Solo reportes
             ['id_rol' => 3, 'id_permiso' => 5, 'fecha_asignacion' => now()],
         ]);
     }

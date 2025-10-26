@@ -8,10 +8,11 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        //Sacamos el usuario
         $user = auth()->user();
         $rol = $user->rol->nombre ?? 'Sin Rol';
 
-        // Redirigir según el rol
+        //Redirigir según el rol
         switch ($rol) {
             case 'Coordinador':
                 return view('dashboard.coordinador', compact('user'));
