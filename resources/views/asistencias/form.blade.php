@@ -53,32 +53,26 @@
 
             <!-- Advertencia de Estado - CORREGIDO -->
             @php
-                $horaInicio = \Carbon\Carbon::parse($horario->hora_inicio);
-                $horaActual = \Carbon\Carbon::now();
+                // Usar timezone de La Paz
+                $now = \Carbon\Carbon::now('America/La_Paz');
+                $horaInicio = \Carbon\Carbon::parse($horario->hora_inicio)
+                    ->setDate($now->year, $now->month, $now->day)
+                    ->setTimezone('America/La_Paz');
                 
-                // CORRECCIÓN: Calcular minutos de diferencia con signo
-                // Si es negativo = llegó antes
-                // Si es positivo = llegó después
-                $minutosDiferencia = $horaInicio->diffInMinutes($horaActual, false);
+                // Usar el método del modelo para calcular minutos
+                $minutosDiferencia = \App\Models\Asistencia::calcularMinutosDiferencia(
+                    $now->format('H:i:s'),
+                    $horaInicio->format('H:i:s')
+                );
                 
-                // Determinar estado basado en minutos de diferencia
-                if ($minutosDiferencia < 0) {
-                    // Llegó ANTES de la hora de inicio
-                    $estadoActual = 'A tiempo';
-                    $minutosTarde = 0;
-                } elseif ($minutosDiferencia <= 5) {
-                    // Llegó entre 0 y 5 minutos después
-                    $estadoActual = 'A tiempo';
-                    $minutosTarde = $minutosDiferencia;
-                } elseif ($minutosDiferencia <= 20) {
-                    // Llegó entre 6 y 20 minutos después
-                    $estadoActual = 'Tardanza';
-                    $minutosTarde = $minutosDiferencia;
-                } else {
-                    // Llegó más de 20 minutos después
-                    $estadoActual = 'Falta';
-                    $minutosTarde = $minutosDiferencia;
-                }
+                // Calcular estado
+                $estadoActual = \App\Models\Asistencia::calcularEstado(
+                    $now->format('H:i:s'),
+                    $horaInicio->format('H:i:s')
+                );
+                
+                // Para mostrar en UI (solo valores positivos)
+                $minutosTarde = max(0, $minutosDiferencia);
             @endphp
             
             @if($estadoActual === 'Tardanza')
@@ -88,7 +82,10 @@
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                         </svg>
                         <div>
-                            <strong>Advertencia:</strong> Su asistencia se registrará como <strong>TARDANZA</strong> ({{ $minutosTarde }} minutos de retraso)
+                            <strong>Advertencia:</strong> Su asistencia se registrará como <strong>TARDANZA</strong> 
+                            @if($minutosTarde > 0)
+                                ({{ $minutosTarde }} {{ $minutosTarde == 1 ? 'minuto' : 'minutos' }} de retraso)
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -99,11 +96,12 @@
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                         </svg>
                         <div>
-                            <strong>Atención:</strong> Su asistencia se registrará como <strong>FALTA</strong> (más de 20 minutos de retraso)
+                            <strong>Atención:</strong> Su asistencia se registrará como <strong>FALTA</strong> 
+                            (más de 20 minutos de retraso)
                         </div>
                     </div>
                 </div>
-            @elseif($estadoActual === 'A tiempo')
+            @else
                 <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 shadow-sm">
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -111,6 +109,9 @@
                         </svg>
                         <div>
                             <strong>Perfecto:</strong> Su asistencia se registrará como <strong>A TIEMPO</strong>
+                            @if($minutosDiferencia < 0)
+                                (llegó {{ abs($minutosDiferencia) }} {{ abs($minutosDiferencia) == 1 ? 'minuto' : 'minutos' }} antes)
+                            @endif
                         </div>
                     </div>
                 </div>

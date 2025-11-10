@@ -28,14 +28,13 @@ class AsistenciaController extends Controller
                 ->with('error', 'No se encontró información de docente asociada a su usuario.');
         }
 
-        // 🔥 SOLUCIÓN HÍBRIDA: Procesar faltas automáticas
-        // Solo se ejecuta cada 30 minutos cuando alguien visita la página
         $this->procesarFaltasAutomaticas();
 
-        $fechaActual = now()->format('Y-m-d');
-        $horaActual = now()->format('H:i:s');
+        // 🔥 CORRECCIÓN: Usar timezone de La Paz explícitamente
+        $now = Carbon::now('America/La_Paz');
+        $fechaActual = $now->format('Y-m-d');
+        $horaActual = $now->format('H:i:s');
         
-        // Mapeo de días en español
         $diasSemana = [
             'Monday' => 'Lunes',
             'Tuesday' => 'Martes',
@@ -46,29 +45,22 @@ class AsistenciaController extends Controller
             'Sunday' => 'Domingo'
         ];
         
-        $diaActual = $diasSemana[now()->format('l')];
+        $diaActual = $diasSemana[$now->format('l')];
 
-        // Obtener horarios del docente para el día actual
         $horarios = Horario::where('id_docente', $docente->registro)
             ->where('dia', $diaActual)
             ->where('activo', true)
             ->with(['materia', 'grupo', 'aula'])
             ->get();
 
-        // Filtrar solo horarios dentro del rango permitido
-        $horariosDisponibles = $horarios->filter(function ($horario) use ($horaActual) {
-            $horaInicio = Carbon::parse($horario->hora_inicio);
-            $horaActualCarbon = Carbon::parse($horaActual);
-            
-            // 10 minutos antes
+        $horariosDisponibles = $horarios->filter(function ($horario) use ($now) {
+            $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
             $inicioPermitido = $horaInicio->copy()->subMinutes(10);
-            // 20 minutos después
             $finalPermitido = $horaInicio->copy()->addMinutes(20);
             
-            return $horaActualCarbon->between($inicioPermitido, $finalPermitido);
+            return $now->between($inicioPermitido, $finalPermitido);
         });
 
-        // Verificar asistencias ya registradas hoy
         $asistenciasRegistradas = Asistencia::where('id_docente', $docente->registro)
             ->where('fecha', $fechaActual)
             ->pluck('id_horario')
@@ -82,34 +74,19 @@ class AsistenciaController extends Controller
         ));
     }
 
-    /**
-     * 🔥 MÉTODO CLAVE DE LA SOLUCIÓN HÍBRIDA
-     * 
-     * Registra faltas automáticas pero con "throttle" (límite de frecuencia)
-     * para no ejecutarse en cada carga de página
-     */
     private function procesarFaltasAutomaticas()
     {
-        // PASO 1: Revisar cuándo fue la última ejecución
         $ultimaEjecucion = Cache::get('ultima_ejecucion_faltas_automaticas');
         
-        // PASO 2: Si se ejecutó hace menos de 30 minutos, NO hacer nada
         if ($ultimaEjecucion && now()->diffInMinutes($ultimaEjecucion) < 30) {
-            \Log::info('Proceso de faltas omitido - Última ejecución hace ' . 
-                      now()->diffInMinutes($ultimaEjecucion) . ' minutos');
-            return; // ⏭️ SALIR SIN HACER NADA
+            return;
         }
         
-        \Log::info('🚀 Iniciando proceso de faltas automáticas');
-        
-        // PASO 3: Marcar que se está ejecutando AHORA
-        // Guardar en caché por 60 minutos
         Cache::put('ultima_ejecucion_faltas_automaticas', now(), 60);
         
-        $fechaActual = now()->format('Y-m-d');
-        $horaActual = now();
+        $now = Carbon::now('America/La_Paz');
+        $fechaActual = $now->format('Y-m-d');
         
-        // Mapeo de días
         $diasSemana = [
             'Monday' => 'Lunes',
             'Tuesday' => 'Martes',
@@ -120,9 +97,8 @@ class AsistenciaController extends Controller
             'Sunday' => 'Domingo'
         ];
         
-        $diaActual = $diasSemana[now()->format('l')];
+        $diaActual = $diasSemana[$now->format('l')];
         
-        // PASO 4: Obtener horarios donde ya pasaron más de 20 minutos
         $horarios = Horario::where('dia', $diaActual)
             ->where('activo', true)
             ->get();
@@ -130,13 +106,10 @@ class AsistenciaController extends Controller
         $faltasRegistradas = 0;
         
         foreach ($horarios as $horario) {
-            $horaInicio = Carbon::parse($horario->hora_inicio);
+            $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
             $limiteRegistro = $horaInicio->copy()->addMinutes(20);
             
-            // Si ya pasaron más de 20 minutos desde el inicio de clase
-            if ($horaActual->greaterThan($limiteRegistro)) {
-                
-                // Verificar si NO existe asistencia registrada
+            if ($now->greaterThan($limiteRegistro)) {
                 $asistenciaExiste = Asistencia::where('id_docente', $horario->id_docente)
                     ->where('id_horario', $horario->id)
                     ->where('fecha', $fechaActual)
@@ -144,10 +117,9 @@ class AsistenciaController extends Controller
                 
                 if (!$asistenciaExiste) {
                     try {
-                        // PASO 5: Crear registro de falta
                         Asistencia::create([
                             'fecha' => $fechaActual,
-                            'hora_llegada' => null, // No hubo llegada
+                            'hora_llegada' => null,
                             'estado' => 'Falta',
                             'observaciones' => 'Falta automática por no registrar asistencia',
                             'id_docente' => $horario->id_docente,
@@ -157,21 +129,14 @@ class AsistenciaController extends Controller
                         
                         $faltasRegistradas++;
                         
-                        \Log::info("✅ Falta registrada - Docente: {$horario->id_docente}, Hora: {$horaInicio->format('H:i')}");
-                        
                     } catch (\Exception $e) {
-                        \Log::error("❌ Error al registrar falta: " . $e->getMessage());
+                        \Log::error("Error al registrar falta: " . $e->getMessage());
                     }
                 }
             }
         }
-        
-        \Log::info("✅ Proceso completado - {$faltasRegistradas} faltas registradas");
     }
 
-    /**
-     * Muestra el formulario de confirmación para un horario específico
-     */
     public function form($id)
     {
         $docente = Auth::user()->docente;
@@ -183,14 +148,15 @@ class AsistenciaController extends Controller
 
         $horario = Horario::with(['materia', 'grupo', 'aula'])->findOrFail($id);
         
-        // Validar que el horario pertenece al docente
         if ($horario->id_docente != $docente->registro) {
             return redirect()->route('asistencias.index')
                 ->with('error', 'No tiene autorización para registrar asistencia en este horario.');
         }
 
-        // Validar que no existe asistencia previa hoy
-        $fechaActual = now()->format('Y-m-d');
+        // 🔥 CORRECCIÓN: Usar timezone explícito
+        $now = Carbon::now('America/La_Paz');
+        $fechaActual = $now->format('Y-m-d');
+        
         $asistenciaExistente = Asistencia::where('id_docente', $docente->registro)
             ->where('id_horario', $horario->id)
             ->where('fecha', $fechaActual)
@@ -201,14 +167,11 @@ class AsistenciaController extends Controller
                 ->with('error', 'Ya registró su asistencia para esta clase.');
         }
 
-        // Validar que está dentro del horario permitido
-        $horaActual = now()->format('H:i:s');
-        $horaInicio = Carbon::parse($horario->hora_inicio);
-        $horaActualCarbon = Carbon::parse($horaActual);
+        $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
         $inicioPermitido = $horaInicio->copy()->subMinutes(10);
         $finalPermitido = $horaInicio->copy()->addMinutes(20);
 
-        if (!$horaActualCarbon->between($inicioPermitido, $finalPermitido)) {
+        if (!$now->between($inicioPermitido, $finalPermitido)) {
             return redirect()->route('asistencias.index')
                 ->with('error', 'Fuera del horario permitido para registrar asistencia.');
         }
@@ -217,10 +180,21 @@ class AsistenciaController extends Controller
     }
 
     /**
-     * Registra asistencia confirmando con nombre de usuario
+     * 🔥 MÉTODO PRINCIPAL CORREGIDO
      */
     public function registrar(Request $request)
     {
+        // Log inicial para debugging
+        \Log::info('=== INICIO REGISTRO ASISTENCIA ===', [
+            'request_data' => $request->all(),
+            'user_id' => Auth::id(),
+            'ip' => $request->ip(),
+            'timezone_server' => config('app.timezone'),
+            'timezone_env' => env('APP_TIMEZONE'),
+            'now' => now()->toDateTimeString(),
+            'now_lapaz' => Carbon::now('America/La_Paz')->toDateTimeString(),
+        ]);
+
         $request->validate([
             'id_horario' => 'required|exists:horarios,id',
             'username' => 'required|string',
@@ -228,47 +202,86 @@ class AsistenciaController extends Controller
         ]);
 
         $docente = Auth::user()->docente;
+        
+        if (!$docente) {
+            \Log::error('Docente no encontrado para usuario', ['user_id' => Auth::id()]);
+            return back()->with('error', 'No se encontró información de docente asociada a su usuario.');
+        }
+
         $horario = Horario::findOrFail($request->id_horario);
-        $fechaActual = now()->format('Y-m-d');
-        $horaActual = now()->format('H:i:s');
+        
+        // 🔥 CORRECCIÓN CRÍTICA: Usar timezone de La Paz
+        $now = Carbon::now('America/La_Paz');
+        $fechaActual = $now->format('Y-m-d');
+        $horaActual = $now->format('H:i:s');
+
+        \Log::info('Datos de tiempo', [
+            'fecha_actual' => $fechaActual,
+            'hora_actual' => $horaActual,
+            'hora_inicio_horario' => $horario->hora_inicio,
+        ]);
 
         try {
             DB::beginTransaction();
 
-            // Validar que el horario pertenece al docente
+            // Validación 1: Horario pertenece al docente
             if ($horario->id_docente != $docente->registro) {
+                \Log::warning('Intento de registro en horario ajeno', [
+                    'horario_docente' => $horario->id_docente,
+                    'docente_actual' => $docente->registro
+                ]);
                 return back()->with('error', 'No tiene autorización para registrar asistencia en este horario.');
             }
 
-            // Validar nombre de usuario
+            // Validación 2: Username correcto
             if (Auth::user()->username !== $request->username) {
+                \Log::warning('Username incorrecto', [
+                    'esperado' => Auth::user()->username,
+                    'recibido' => $request->username
+                ]);
                 return back()
                     ->withErrors(['username' => 'El nombre de usuario no coincide con su cuenta.'])
                     ->withInput();
             }
 
-            // Validar que no existe asistencia previa
+            // Validación 3: No existe asistencia previa
             $asistenciaExistente = Asistencia::where('id_docente', $docente->registro)
                 ->where('id_horario', $request->id_horario)
                 ->where('fecha', $fechaActual)
                 ->first();
 
             if ($asistenciaExistente) {
+                \Log::info('Asistencia ya existe', ['asistencia_id' => $asistenciaExistente->id]);
                 return back()->with('error', 'Ya registró su asistencia para esta clase.');
             }
 
-            // Validar rango de tiempo permitido
-            $horaInicio = Carbon::parse($horario->hora_inicio);
-            $horaActualCarbon = Carbon::parse($horaActual);
+            // Validación 4: Rango de tiempo permitido
+            $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
             $inicioPermitido = $horaInicio->copy()->subMinutes(10);
             $finalPermitido = $horaInicio->copy()->addMinutes(20);
 
-            if (!$horaActualCarbon->between($inicioPermitido, $finalPermitido)) {
+            \Log::info('Validación de rango horario', [
+                'hora_actual' => $now->format('H:i:s'),
+                'hora_inicio' => $horaInicio->format('H:i:s'),
+                'inicio_permitido' => $inicioPermitido->format('H:i:s'),
+                'final_permitido' => $finalPermitido->format('H:i:s'),
+                'esta_en_rango' => $now->between($inicioPermitido, $finalPermitido)
+            ]);
+
+            if (!$now->between($inicioPermitido, $finalPermitido)) {
                 return back()->with('error', 'Fuera del horario permitido para registrar asistencia. Puede registrar desde 10 minutos antes hasta 20 minutos después de la hora de inicio.');
             }
 
-            // Calcular estado de asistencia
+            // 🔥 CALCULAR ESTADO CORRECTAMENTE
             $estado = $this->calcularEstado($horaActual, $horario->hora_inicio);
+            $minutosDif = Asistencia::calcularMinutosDiferencia($horaActual, $horario->hora_inicio);
+
+            \Log::info('Estado calculado', [
+                'estado' => $estado,
+                'hora_llegada' => $horaActual,
+                'hora_inicio' => $horario->hora_inicio,
+                'minutos_diferencia' => $minutosDif
+            ]);
 
             // Crear registro de asistencia
             $asistencia = Asistencia::create([
@@ -278,6 +291,12 @@ class AsistenciaController extends Controller
                 'observaciones' => $request->observaciones,
                 'id_docente' => $docente->registro,
                 'id_horario' => $request->id_horario,
+                'justificada' => false,
+            ]);
+
+            \Log::info('Asistencia creada exitosamente', [
+                'asistencia_id' => $asistencia->id,
+                'estado' => $asistencia->estado
             ]);
 
             // Registrar en bitácora
@@ -292,6 +311,8 @@ class AsistenciaController extends Controller
 
             DB::commit();
 
+            \Log::info('=== ASISTENCIA REGISTRADA EXITOSAMENTE ===');
+
             $mensaje = $estado === 'A tiempo' 
                 ? 'Asistencia registrada correctamente.' 
                 : "Asistencia registrada con estado: {$estado}";
@@ -300,8 +321,10 @@ class AsistenciaController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error al registrar asistencia:', [
+            \Log::error('=== ERROR AL REGISTRAR ASISTENCIA ===', [
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
             return back()->with('error', 'Error al registrar asistencia: ' . $e->getMessage());
@@ -309,8 +332,13 @@ class AsistenciaController extends Controller
     }
 
     /**
-     * Historial de asistencias del docente
+     * 🔥 Delegar al método del modelo
      */
+    private function calcularEstado($horaLlegada, $horaInicio)
+    {
+        return Asistencia::calcularEstado($horaLlegada, $horaInicio);
+    }
+
     public function historial(Request $request)
     {
         $docente = Auth::user()->docente;
@@ -320,7 +348,6 @@ class AsistenciaController extends Controller
             ->orderBy('fecha', 'desc')
             ->orderBy('hora_llegada', 'desc');
 
-        // Filtros opcionales
         if ($request->filled('fecha_inicio')) {
             $query->where('fecha', '>=', $request->fecha_inicio);
         }
@@ -335,7 +362,6 @@ class AsistenciaController extends Controller
 
         $asistencias = $query->paginate(20);
 
-        // Estadísticas del docente
         $estadisticas = [
             'total' => Asistencia::where('id_docente', $docente->registro)->count(),
             'a_tiempo' => Asistencia::where('id_docente', $docente->registro)->where('estado', 'A tiempo')->count(),
@@ -346,45 +372,32 @@ class AsistenciaController extends Controller
         return view('asistencias.historial', compact('asistencias', 'estadisticas'));
     }
 
-    /**
-     * Consulta de asistencias para el coordinador
-     */
     public function consultaCoordinador(Request $request)
     {
-        // Query base con relaciones
         $query = Asistencia::with(['docente.usuario', 'horario.materia', 'horario.grupo', 'horario.aula']);
 
-        // Filtro por rango de fechas
         if ($request->filled('fecha_inicio')) {
             $query->whereDate('fecha', '>=', $request->fecha_inicio);
         }
         if ($request->filled('fecha_fin')) {
             $query->whereDate('fecha', '<=', $request->fecha_fin);
         }
-
-        // Filtro por estado
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);
         }
-
-        // Filtro por docente
         if ($request->filled('id_docente')) {
             $query->where('id_docente', $request->id_docente);
         }
-
-        // Filtro por grupo
         if ($request->filled('id_grupo')) {
             $query->whereHas('horario', function($q) use ($request) {
                 $q->where('id_grupo', $request->id_grupo);
             });
         }
 
-        // Ordenar y paginar
         $asistencias = $query->orderBy('fecha', 'desc')
                             ->orderBy('hora_llegada', 'desc')
                             ->paginate(20);
 
-        // Calcular estadísticas con los filtros aplicados
         $estadisticasQuery = Asistencia::query();
         
         if ($request->filled('fecha_inicio')) {
@@ -412,89 +425,17 @@ class AsistenciaController extends Controller
             'faltas' => (clone $estadisticasQuery)->where('estado', 'Falta')->count(),
         ];
 
-        // Obtener listas para filtros
         $docentes = Docente::where('activo', true)->with('usuario')->get();
         $grupos = Grupo::where('activo', true)->get();
 
         return view('asistencias.consulta-coordinador', compact('asistencias', 'estadisticas', 'docentes', 'grupos'));
     }
 
-    /**
-     * Consulta de asistencias para autoridades (mismo que coordinador)
-     */
     public function consultaAutoridad(Request $request)
     {
-        // Query base con relaciones
-        $query = Asistencia::with(['docente.usuario', 'horario.materia', 'horario.grupo', 'horario.aula']);
-
-        // Filtro por rango de fechas
-        if ($request->filled('fecha_inicio')) {
-            $query->whereDate('fecha', '>=', $request->fecha_inicio);
-        }
-        if ($request->filled('fecha_fin')) {
-            $query->whereDate('fecha', '<=', $request->fecha_fin);
-        }
-
-        // Filtro por estado
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->estado);
-        }
-
-        // Filtro por docente
-        if ($request->filled('id_docente')) {
-            $query->where('id_docente', $request->id_docente);
-        }
-
-        // Filtro por grupo
-        if ($request->filled('id_grupo')) {
-            $query->whereHas('horario', function($q) use ($request) {
-                $q->where('id_grupo', $request->id_grupo);
-            });
-        }
-
-        // Ordenar y paginar
-        $asistencias = $query->orderBy('fecha', 'desc')
-                            ->orderBy('hora_llegada', 'desc')
-                            ->paginate(20);
-
-        // Calcular estadísticas con los filtros aplicados
-        $estadisticasQuery = Asistencia::query();
-        
-        if ($request->filled('fecha_inicio')) {
-            $estadisticasQuery->whereDate('fecha', '>=', $request->fecha_inicio);
-        }
-        if ($request->filled('fecha_fin')) {
-            $estadisticasQuery->whereDate('fecha', '<=', $request->fecha_fin);
-        }
-        if ($request->filled('estado')) {
-            $estadisticasQuery->where('estado', $request->estado);
-        }
-        if ($request->filled('id_docente')) {
-            $estadisticasQuery->where('id_docente', $request->id_docente);
-        }
-        if ($request->filled('id_grupo')) {
-            $estadisticasQuery->whereHas('horario', function($q) use ($request) {
-                $q->where('id_grupo', $request->id_grupo);
-            });
-        }
-
-        $estadisticas = [
-            'total' => $estadisticasQuery->count(),
-            'a_tiempo' => (clone $estadisticasQuery)->where('estado', 'A tiempo')->count(),
-            'tardanzas' => (clone $estadisticasQuery)->where('estado', 'Tardanza')->count(),
-            'faltas' => (clone $estadisticasQuery)->where('estado', 'Falta')->count(),
-        ];
-
-        // Obtener listas para filtros
-        $docentes = Docente::where('activo', true)->with('usuario')->get();
-        $grupos = Grupo::where('activo', true)->get();
-
-        return view('asistencias.consulta-autoridad', compact('asistencias', 'estadisticas', 'docentes', 'grupos'));
+        return $this->consultaCoordinador($request);
     }
 
-    /**
-     * Justificar una falta o tardanza
-     */
     public function justificar(Request $request, $id)
     {
         $request->validate([
@@ -506,13 +447,11 @@ class AsistenciaController extends Controller
 
             $asistencia = Asistencia::findOrFail($id);
 
-            // Validar que la asistencia pertenece al docente actual
             if ($asistencia->id_docente != Auth::user()->docente->registro) {
                 return redirect()->route('asistencias.historial')
                     ->with('error', 'No tiene autorización para justificar esta asistencia.');
             }
 
-            // Validar que el estado sea justificable
             if ($asistencia->estado === 'A tiempo') {
                 return redirect()->route('asistencias.historial')
                     ->with('error', 'No es necesario justificar una asistencia a tiempo.');
@@ -544,40 +483,26 @@ class AsistenciaController extends Controller
         }
     }
 
-    /**
-     * Muestra el formulario para justificar una asistencia
-     */
     public function justificarForm($id)
     {
         $asistencia = Asistencia::with(['horario.materia', 'horario.grupo'])
             ->findOrFail($id);
         
-        // Validar que la asistencia pertenece al docente actual
         if ($asistencia->id_docente != Auth::user()->docente->registro) {
             return redirect()->route('asistencias.historial')
                 ->with('error', 'No tiene autorización para justificar esta asistencia.');
         }
         
-        // Validar que el estado sea justificable
         if ($asistencia->estado === 'A tiempo') {
             return redirect()->route('asistencias.historial')
                 ->with('error', 'No es necesario justificar una asistencia a tiempo.');
         }
         
-        // Validar que no esté ya justificada
         if ($asistencia->justificada) {
             return redirect()->route('asistencias.historial')
                 ->with('info', 'Esta asistencia ya está justificada.');
         }
         
         return view('asistencias.justificar', compact('asistencia'));
-    }
-
-    /**
-     * Calcular estado de asistencia según la hora de llegada
-     */
-    private function calcularEstado($horaLlegada, $horaInicio)
-    {
-        return Asistencia::calcularEstado($horaLlegada, $horaInicio);
     }
 }
