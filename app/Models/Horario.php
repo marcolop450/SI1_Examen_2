@@ -28,8 +28,6 @@ class Horario extends Model
         return [
             'activo' => 'boolean',
             'es_virtual' => 'boolean',
-            // NO USAR datetime para campos TIME
-            // Laravel los maneja automáticamente como string en formato H:i:s
         ];
     }
 
@@ -59,7 +57,7 @@ class Horario extends Model
         return $this->hasMany(Asistencia::class, 'id_horario');
     }
 
-    //Scopes útiles
+    //Scopes
     public function scopeActivos($query)
     {
         return $query->where('activo', true);

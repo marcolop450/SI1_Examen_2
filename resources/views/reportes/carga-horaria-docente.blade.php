@@ -52,7 +52,7 @@
                                 <p><span class="font-semibold">Registro:</span> {{ $docente->registro }}</p>
                                 <p><span class="font-semibold">Carrera:</span> {{ $docente->carrera }}</p>
                                 <p><span class="font-semibold">Especialidad:</span> {{ $docente->especialidad }}</p>
-                                <p><span class="font-semibold">Email:</span> {{ $docente->usuario->email }}</p>
+                                <p><span class="font-semibold">Email:</span> {{ $docente->usuario->correo }}</p>
                             </div>
                         </div>
                     </div>

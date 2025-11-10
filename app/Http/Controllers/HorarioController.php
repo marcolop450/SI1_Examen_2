@@ -14,17 +14,12 @@ use Carbon\Carbon;
 
 class HorarioController extends Controller
 {
-    // CONSTANTE: 1 hora académica = 45 minutos
     const MINUTOS_POR_HORA_ACADEMICA = 45;
-
-    /**
-     * Genera horarios disponibles cada 45 minutos desde las 7:00 AM hasta las 21:15 PM
-     */
     private function generarHorariosDisponibles()
     {
         $horarios = [];
         $inicio = Carbon::createFromTime(7, 0);
-        $fin = Carbon::createFromTime(21, 15); // Cambiado de 22:00 a 21:15
+        $fin = Carbon::createFromTime(21, 15); 
         
         while ($inicio->lessThanOrEqualTo($fin)) {
             $horarios[] = $inicio->format('H:i');
@@ -100,8 +95,6 @@ class HorarioController extends Controller
             'grupo',
             'aula'
         ])->findOrFail($id);
-
-        // Calcular duración en horas académicas
         $minutos = $this->calcularDuracionEnMinutos($horario->hora_inicio, $horario->hora_final);
         $horasAcademicas = round($minutos / self::MINUTOS_POR_HORA_ACADEMICA, 2);
 
@@ -118,7 +111,6 @@ class HorarioController extends Controller
         $grupos = Grupo::where('activo', true)->get();
         $aulas = Aula::where('activo', true)->get();
         $horariosDisponibles = $this->generarHorariosDisponibles();
-
         return view('horarios.create', compact('docentes', 'materias', 'grupos', 'aulas', 'horariosDisponibles'));
     }
 
@@ -160,25 +152,15 @@ class HorarioController extends Controller
             $materia = Materia::findOrFail($request->id_materia);
             $docente = Docente::findOrFail($request->id_docente);
             $grupo = Grupo::findOrFail($request->id_grupo);
-            
-            // 270 minutos semanales fijos (4.5 horas * 60 min = 270 min)
             $minutosSemanales = 270;
             $cantidadDias = count($request->dias);
             $minutosPorDia = round($minutosSemanales / $cantidadDias);
             
             $horasPorDia = $minutosPorDia / self::MINUTOS_POR_HORA_ACADEMICA;
             $horasTotalesSemana = $horasPorDia * $cantidadDias;
-            
-            // Redondear a entero para la BD
-            $horasTotalesEnteras = (int) round($horasTotalesSemana);
-            
+            $horasTotalesEnteras = (int) round($horasTotalesSemana);            
             $horaInicio = Carbon::createFromFormat('H:i', $request->hora_inicio);
             $horaFinal = $horaInicio->copy()->addMinutes($minutosPorDia)->format('H:i');
-
-            // Validar que no exceda las 23:00
-            $limiteHora = Carbon::createFromTime(23, 0);
-            $horaFinalCarbon = Carbon::createFromFormat('H:i', $horaFinal);
-
             $limiteHora = Carbon::createFromTime(23, 0);
             $horaFinalCarbon = Carbon::createFromFormat('H:i', $horaFinal);
 
@@ -189,9 +171,7 @@ class HorarioController extends Controller
                             "Por favor, seleccione una hora de inicio más temprana."
                 ])->withInput();
             }
-
             $cargaNueva = $docente->carga_horaria_actual + $horasTotalesEnteras;
-            
             if ($cargaNueva > $docente->carga_horaria_maxima) {
                 DB::rollback();
                 return back()->withErrors([
@@ -247,11 +227,10 @@ class HorarioController extends Controller
 
                 $horariosCreados[] = $horario;
             }
-
-            // Actualizar carga horaria como entero
             $docente->carga_horaria_actual = $docente->carga_horaria_actual + $horasTotalesEnteras;
             $docente->save();
 
+            //Enviamos a Bitacora
             Bitacora::create([
                 'accion' => 'Crear Horarios',
                 'descripcion' => "Horarios creados para {$cantidadDias} días: {$request->hora_inicio}-{$horaFinal} " .
@@ -316,10 +295,8 @@ class HorarioController extends Controller
 
         DB::beginTransaction();
         try {
-            // Calcular hora_final automáticamente basado en 270 minutos semanales
-            $materia = Materia::findOrFail($request->id_materia);
+             $materia = Materia::findOrFail($request->id_materia);
             
-            // Contar cuántos días tiene esta materia con este grupo en esta gestión
             $diasConMismaMateria = Horario::where('id_grupo', $request->id_grupo)
                 ->where('id_materia', $request->id_materia)
                 ->where('gestion', $request->gestion)
@@ -327,21 +304,18 @@ class HorarioController extends Controller
                 ->distinct('dia')
                 ->count('dia');
             
-            // Si estamos en el mismo día, no contamos este horario
             $esElMismoDia = ($horario->dia == $request->dia && 
                            $horario->id_grupo == $request->id_grupo && 
                            $horario->id_materia == $request->id_materia);
             
             if (!$esElMismoDia) {
-                $diasConMismaMateria++; // Sumamos el nuevo día
+                $diasConMismaMateria++;
             }
             
             $minutosSemanales = 270;
-            $minutosPorDia = round($minutosSemanales / max(1, $diasConMismaMateria));
-            
+            $minutosPorDia = round($minutosSemanales / max(1, $diasConMismaMateria));           
             $horaInicio = Carbon::createFromFormat('H:i', $request->hora_inicio);
             $horaFinal = $horaInicio->copy()->addMinutes($minutosPorDia)->format('H:i');
-            // Validar que no exceda las 23:00
             $limiteHora = Carbon::createFromTime(23, 0);
             $horaFinalCarbon = Carbon::createFromFormat('H:i', $horaFinal);
 
@@ -381,15 +355,12 @@ class HorarioController extends Controller
             }
 
             $minutosAnterior = $this->calcularDuracionEnMinutos($horario->hora_inicio, $horario->hora_final);
-            $horasAnteriores = (int) round($minutosAnterior / self::MINUTOS_POR_HORA_ACADEMICA);
-            
+            $horasAnteriores = (int) round($minutosAnterior / self::MINUTOS_POR_HORA_ACADEMICA);     
             $docenteAnterior = Docente::findOrFail($horario->id_docente);
             $docenteAnterior->carga_horaria_actual = max(0, $docenteAnterior->carga_horaria_actual + $horasAnteriores);
             $docenteAnterior->save();
-
             $minutosNuevos = $minutosPorDia;
-            $horasNuevas = (int) round($minutosNuevos / self::MINUTOS_POR_HORA_ACADEMICA);
-            
+            $horasNuevas = (int) round($minutosNuevos / self::MINUTOS_POR_HORA_ACADEMICA);        
             $docenteNuevo = Docente::findOrFail($request->id_docente);
 
             if (($docenteNuevo->carga_horaria_actual + $horasNuevas) > $docenteNuevo->carga_horaria_maxima) {

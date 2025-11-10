@@ -91,7 +91,6 @@ class HorariosExport implements FromCollection, WithHeadings, WithMapping, WithS
      */
     public function styles(Worksheet $sheet)
     {
-        // Estilo del encabezado
         $sheet->getStyle('A1:J1')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -108,8 +107,6 @@ class HorariosExport implements FromCollection, WithHeadings, WithMapping, WithS
                 ],
             ],
         ]);
-
-        // Auto-ajustar ancho de columnas
         foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }

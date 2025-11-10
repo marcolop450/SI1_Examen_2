@@ -27,7 +27,7 @@
                         </div>
                         <div>
                             <h3 class="text-3xl font-bold text-white">
-                                ¡Bienvenido, {{ $user->nombre }} {{ $user->apellido }}!
+                                ¡Bienvenido, {{ $user->nombre }} {{ $user->apellido }} ({{ $user->username }})!
                             </h3>
                             <p class="text-blue-100 mt-1">Panel de Docente - Sistema Académico</p>
                         </div>

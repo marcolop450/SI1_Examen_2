@@ -91,9 +91,7 @@ class AulasExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     /**
      * @param Worksheet $sheet
      */
-    public function styles(Worksheet $sheet)
-    {
-        // Estilo del encabezado
+    public function styles(Worksheet $sheet){
         $sheet->getStyle('A1:I1')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -111,7 +109,6 @@ class AulasExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             ],
         ]);
 
-        // Auto-ajustar ancho de columnas
         foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }

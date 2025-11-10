@@ -20,14 +20,8 @@ use App\Exports\CargaHorariaDocenteExport;
 
 class ReporteController extends Controller
 {
-    /**
-     * ========================================
-     * VISTA PRINCIPAL DE REPORTES
-     * ========================================
-     */
     public function index()
     {
-        // KPIs Generales del Sistema
         $estadisticas = [
             'total_docentes' => Docente::where('activo', true)->count(),
             'total_horarios' => Horario::where('activo', true)->count(),
@@ -42,8 +36,6 @@ class ReporteController extends Controller
                 ->distinct('id_docente')
                 ->count('id_docente'),
         ];
-
-        // Tendencia de asistencias últimos 7 días
         $tendenciaAsistencias = Asistencia::whereBetween('fecha', [now()->subDays(6), now()])
             ->selectRaw("DATE(fecha) as dia, 
                 COUNT(*) as total,
@@ -54,7 +46,6 @@ class ReporteController extends Controller
             ->orderBy('dia')
             ->get();
 
-        // Top 5 docentes más puntuales del mes
         $topDocentes = Docente::where('activo', true)
             ->with('usuario')
             ->get()
@@ -78,7 +69,6 @@ class ReporteController extends Controller
             ->sortByDesc('porcentaje')
             ->take(5);
 
-        // Aulas más utilizadas
         $topAulas = Horario::where('activo', true)
             ->where('es_virtual', false)
             ->whereNotNull('id_aula')
@@ -88,7 +78,6 @@ class ReporteController extends Controller
             ->limit(5)
             ->with('aula')
             ->get();
-
         return view('reportes.index', compact(
             'estadisticas',
             'tendenciaAsistencias',
@@ -97,17 +86,11 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * ========================================
-     * DASHBOARD EN TIEMPO REAL
-     * ========================================
-     */
     public function dashboardTiempoReal()
     {
         $diaActual = $this->traducirDia(now()->locale('es')->dayName);
         $horaActual = now()->format('H:i:s');
 
-        // Clases en curso AHORA
         $clasesEnCurso = Horario::where('activo', true)
             ->where('dia', $diaActual)
             ->whereTime('hora_inicio', '<=', $horaActual)
@@ -115,7 +98,6 @@ class ReporteController extends Controller
             ->with(['docente.usuario', 'materia', 'grupo', 'aula'])
             ->get();
 
-        // Próximas clases (siguientes 2 horas)
         $proximasClases = Horario::where('activo', true)
             ->where('dia', $diaActual)
             ->whereTime('hora_inicio', '>', $horaActual)
@@ -124,13 +106,11 @@ class ReporteController extends Controller
             ->orderBy('hora_inicio')
             ->get();
 
-        // Asistencias registradas HOY
         $asistenciasHoy = Asistencia::whereDate('fecha', now())
             ->with(['docente.usuario', 'horario.materia', 'horario.grupo'])
             ->orderBy('hora_llegada', 'desc')
             ->get();
 
-        // Alertas: clases sin asistencia registrada (ya pasó hora inicio)
         $alertasSinAsistencia = Horario::where('activo', true)
             ->where('dia', $diaActual)
             ->whereTime('hora_inicio', '<', $horaActual)
@@ -161,23 +141,15 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * ========================================
-     * REPORTE DE HORARIOS
-     * ========================================
-     */
     public function horarios(Request $request)
     {
         $filtroDocente = $request->input('docente');
         $filtroGrupo = $request->input('grupo');
         $filtroDia = $request->input('dia');
-
-        // Obtener listas para filtros
         $docentes = Docente::where('activo', true)->with('usuario')->get();
         $grupos = Grupo::where('activo', true)->get();
         $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-        // Query base
         $queryHorarios = Horario::where('activo', true);
 
         if ($filtroDocente) {
@@ -190,7 +162,6 @@ class ReporteController extends Controller
             $queryHorarios->where('dia', $filtroDia);
         }
 
-        // Estadísticas
         $estadisticas = [
             'total_horarios' => (clone $queryHorarios)->count(),
             'horarios_presenciales' => (clone $queryHorarios)->where('es_virtual', false)->count(),
@@ -198,15 +169,13 @@ class ReporteController extends Controller
             'docentes_con_horarios' => (clone $queryHorarios)->distinct('id_docente')->count('id_docente'),
             'grupos_con_horarios' => (clone $queryHorarios)->distinct('id_grupo')->count('id_grupo'),
         ];
-
-        // Distribución por día
+    
         $distribucionPorDia = (clone $queryHorarios)
             ->select('dia', DB::raw('COUNT(*) as total'))
             ->groupBy('dia')
             ->get()
             ->pluck('total', 'dia');
 
-        // Aulas más utilizadas
         $aulasMasUsadas = (clone $queryHorarios)
             ->where('es_virtual', false)
             ->whereNotNull('id_aula')
@@ -217,7 +186,6 @@ class ReporteController extends Controller
             ->limit(10)
             ->get();
 
-        // Docentes con más horas
         $docentesConMasHoras = Docente::where('activo', true)
             ->when($filtroDocente, fn($q) => $q->where('registro', $filtroDocente))
             ->orderBy('carga_horaria_actual', 'desc')
@@ -225,7 +193,6 @@ class ReporteController extends Controller
             ->with('usuario')
             ->get();
 
-        // Horarios completos (para tabla detallada)
         $horarios = (clone $queryHorarios)
             ->with(['docente.usuario', 'materia', 'grupo', 'aula'])
             ->orderBy('dia')
@@ -247,11 +214,6 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * ========================================
-     * REPORTE DE ASISTENCIAS
-     * ========================================
-     */
     public function asistencias(Request $request)
     {
         $request->validate([
@@ -265,13 +227,9 @@ class ReporteController extends Controller
         $filtroGrupo = $request->input('grupo');
         $filtroEstado = $request->input('estado');
 
-        // Listas para filtros
         $docentes = Docente::where('activo', true)->with('usuario')->get();
         $grupos = Grupo::where('activo', true)->get();
-
-        // Query base
         $queryAsistencias = Asistencia::whereBetween('fecha', [$fechaInicio, $fechaFin]);
-
         if ($filtroDocente) {
             $queryAsistencias->where('id_docente', $filtroDocente);
         }
@@ -282,7 +240,6 @@ class ReporteController extends Controller
             $queryAsistencias->where('estado', $filtroEstado);
         }
 
-        // Estadísticas del período
         $estadisticas = [
             'total' => (clone $queryAsistencias)->count(),
             'a_tiempo' => (clone $queryAsistencias)->where('estado', 'A tiempo')->count(),
@@ -291,7 +248,6 @@ class ReporteController extends Controller
             'justificadas' => (clone $queryAsistencias)->where('justificada', true)->count(),
         ];
 
-        // Calcular porcentajes
         if ($estadisticas['total'] > 0) {
             $estadisticas['porcentaje_a_tiempo'] = round(($estadisticas['a_tiempo'] / $estadisticas['total']) * 100, 2);
             $estadisticas['porcentaje_tardanzas'] = round(($estadisticas['tardanzas'] / $estadisticas['total']) * 100, 2);
@@ -301,13 +257,10 @@ class ReporteController extends Controller
             $estadisticas['porcentaje_tardanzas'] = 0;
             $estadisticas['porcentaje_faltas'] = 0;
         }
-
-        // Ranking de docentes por puntualidad
         $queryDocentes = Docente::where('activo', true)->with('usuario');
         if ($filtroDocente) {
             $queryDocentes->where('registro', $filtroDocente);
         }
-
         $rankingDocentes = $queryDocentes->get()
             ->map(function ($docente) use ($fechaInicio, $fechaFin, $filtroGrupo) {
                 $queryAsist = Asistencia::where('id_docente', $docente->registro)
@@ -337,7 +290,6 @@ class ReporteController extends Controller
             ->values()
             ->take(15);
 
-        // Asistencias por día de la semana
         $asistenciasPorDia = (clone $queryAsistencias)
             ->with('horario')
             ->get()
@@ -351,7 +303,7 @@ class ReporteController extends Controller
                 ];
             });
 
-        // Tendencia últimos 7 días
+        //Tendencia últimos 7 días
         $tendenciaUltimos7Dias = Asistencia::whereBetween('fecha', [now()->subDays(6), now()])
             ->when($filtroDocente, fn($q) => $q->where('id_docente', $filtroDocente))
             ->selectRaw("DATE(fecha) as dia, 
@@ -361,7 +313,7 @@ class ReporteController extends Controller
             ->orderBy('dia')
             ->get();
 
-        // Docentes con más faltas
+        //Docentes con más faltas
         $docentesConMasFaltas = Asistencia::whereBetween('fecha', [$fechaInicio, $fechaFin])
             ->where('estado', 'Falta')
             ->select('id_docente', DB::raw('COUNT(*) as total_faltas'))
@@ -371,7 +323,7 @@ class ReporteController extends Controller
             ->with('docente.usuario')
             ->get();
 
-        // Listado detallado de asistencias
+        //Listado detallado de asistencias
         $asistencias = (clone $queryAsistencias)
             ->with(['docente.usuario', 'horario.materia', 'horario.grupo', 'horario.aula'])
             ->orderBy('fecha', 'desc')
@@ -395,11 +347,6 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * ========================================
-     * REPORTE DE AULAS
-     * ========================================
-     */
     public function aulas(Request $request)
     {
         $filtroAula = $request->input('aula');
@@ -408,7 +355,7 @@ class ReporteController extends Controller
         $aulas = Aula::where('activo', true)->get();
         $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-        // Estadísticas generales
+        //Estadísticas generales
         $estadisticas = [
             'total_aulas' => Aula::where('activo', true)->count(),
             'aulas_ocupadas' => Horario::where('activo', true)
@@ -418,7 +365,7 @@ class ReporteController extends Controller
                 ->count('id_aula'),
         ];
 
-        // Ocupación por aula
+        //Ocupación por aula
         $ocupacionAulas = Aula::where('activo', true)
             ->when($filtroAula, fn($q) => $q->where('id', $filtroAula))
             ->withCount(['horarios' => function ($query) use ($filtroDia) {
@@ -446,7 +393,6 @@ class ReporteController extends Controller
             })
             ->sortByDesc('total_horarios');
 
-        // Aulas libres por día
         $aulasLibresPorDia = [];
         foreach ($diasSemana as $dia) {
             $aulasLibresPorDia[$dia] = Aula::where('activo', true)
@@ -471,11 +417,6 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * ========================================
-     * AULAS DISPONIBLES POR FRANJA HORARIA
-     * ========================================
-     */
     public function aulasDisponibles(Request $request)
     {
         $dia = $request->input('dia', $this->traducirDia(now()->locale('es')->dayName));
@@ -484,7 +425,6 @@ class ReporteController extends Controller
 
         $diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-        // Aulas ocupadas en ese rango
         $aulasOcupadas = Horario::where('activo', true)
             ->where('dia', $dia)
             ->where('es_virtual', false)
@@ -500,7 +440,7 @@ class ReporteController extends Controller
             ->with(['docente.usuario', 'materia', 'grupo', 'aula'])
             ->get();
 
-        // Aulas disponibles
+
         $aulasDisponibles = Aula::where('activo', true)
             ->whereNotIn('id', $aulasOcupadas->pluck('id_aula')->unique())
             ->get();
@@ -515,11 +455,7 @@ class ReporteController extends Controller
         ));
     }
 
-    /**
-     * ========================================
-     * CARGA HORARIA POR DOCENTE
-     * ========================================
-     */
+
     public function cargaHorariaDocente(Request $request, $idDocente = null)
     {
         $docentes = Docente::where('activo', true)->with('usuario')->get();
@@ -534,7 +470,6 @@ class ReporteController extends Controller
                 ->orderBy('hora_inicio')
                 ->get();
             
-            // Calcular horas por día
             $horasPorDia = $horarios->groupBy('dia')->map(function($grupo) {
                 return $grupo->sum(function($horario) {
                     $inicio = Carbon::parse($horario->hora_inicio);
@@ -544,8 +479,6 @@ class ReporteController extends Controller
             });
             
             $totalHorasSemanales = $horasPorDia->sum();
-            
-            // Asistencias del mes
             $asistenciasMes = Asistencia::where('id_docente', $docente->registro)
                 ->whereMonth('fecha', now()->month)
                 ->whereYear('fecha', now()->year)
@@ -571,11 +504,7 @@ class ReporteController extends Controller
         return view('reportes.seleccionar-docente', compact('docentes'));
     }
 
-    /**
-     * ========================================
-     * EXPORTAR A PDF - ASISTENCIAS
-     * ========================================
-     */
+    //PDF
     public function exportarAsistenciasPDF(Request $request)
     {
         $fechaInicio = $request->input('fecha_inicio', now()->startOfMonth()->format('Y-m-d'));
@@ -611,12 +540,6 @@ class ReporteController extends Controller
 
         return $pdf->download('reporte_asistencias_' . date('Y-m-d') . '.pdf');
     }
-
-    /**
-     * ========================================
-     * EXPORTAR A PDF - CARGA HORARIA DOCENTE
-     * ========================================
-     */
     public function exportarCargaHorariaPDF($idDocente)
     {
         $docente = Docente::with('usuario')->findOrFail($idDocente);
@@ -647,12 +570,6 @@ class ReporteController extends Controller
 
         return $pdf->download('carga_horaria_' . $docente->registro . '.pdf');
     }
-
-    /**
-     * ========================================
-     * EXPORTAR A PDF - HORARIOS
-     * ========================================
-     */
     public function exportarHorariosPDF(Request $request)
     {
         $filtroDocente = $request->input('docente');
@@ -694,12 +611,6 @@ class ReporteController extends Controller
 
         return $pdf->download('reporte_horarios_' . date('Y-m-d') . '.pdf');
     }
-
-    /**
-     * ========================================
-     * EXPORTAR A PDF - AULAS
-     * ========================================
-     */
     public function exportarAulasPDF(Request $request)
     {
         $filtroAula = $request->input('aula');
@@ -744,11 +655,8 @@ class ReporteController extends Controller
 
         return $pdf->download('reporte_aulas_' . date('Y-m-d') . '.pdf');
     }
-    /**
-     * ========================================
-     * EXPORTAR A EXCEL - ASISTENCIAS
-     * ========================================
-     */
+    
+    //EXCEL
     public function exportarAsistenciasExcel(Request $request)
     {
         $fechaInicio = $request->input('fecha_inicio', now()->startOfMonth()->format('Y-m-d'));
@@ -763,12 +671,6 @@ class ReporteController extends Controller
             $nombreArchivo
         );
     }
-
-    /**
-     * ========================================
-     * EXPORTAR A EXCEL - HORARIOS
-     * ========================================
-     */
     public function exportarHorariosExcel(Request $request)
     {
         $filtroDocente = $request->input('docente');
@@ -782,12 +684,6 @@ class ReporteController extends Controller
             $nombreArchivo
         );
     }
-
-    /**
-     * ========================================
-     * EXPORTAR A EXCEL - AULAS
-     * ========================================
-     */
     public function exportarAulasExcel()
     {
         $nombreArchivo = 'aulas_ocupacion_' . date('Y-m-d_His') . '.xlsx';
@@ -796,8 +692,7 @@ class ReporteController extends Controller
             new AulasExport(),
             $nombreArchivo
         );
-    }
-    
+    } 
     public function exportarCargaHorariaExcel($idDocente)
     {
         $nombreArchivo = 'carga_horaria_docente_' . $idDocente . '_' . date('Y-m-d_His') . '.xlsx';
@@ -807,11 +702,8 @@ class ReporteController extends Controller
             $nombreArchivo
         );
     }
-    /**
-     * ========================================
-     * MÉTODOS AUXILIARES
-     * ========================================
-     */
+    
+    //METODOS AUXILIARES
     private function calcularPromedioPuntualidad()
     {
         $total = Asistencia::whereMonth('fecha', now()->month)
@@ -843,7 +735,7 @@ class ReporteController extends Controller
 
     private function calcularPorcentajeOcupacion($horarios)
     {
-        $horasDisponibles = 72; // 6 días x 12 horas
+        $horasDisponibles = 72; 
         $horasOcupadas = $this->calcularHorasSemanalesAula($horarios);
 
         if ($horasDisponibles == 0) return 0;

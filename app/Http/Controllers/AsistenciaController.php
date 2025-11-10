@@ -16,9 +16,17 @@ use Carbon\Carbon;
 
 class AsistenciaController extends Controller
 {
+    // Constante para zona horaria
+    private const TIMEZONE = 'America/La_Paz';
+    
     /**
-     * Muestra el formulario de registro de asistencia
+     * Obtiene la fecha/hora actual en La Paz
      */
+    private function getNowLaPaz()
+    {
+        return Carbon::now(self::TIMEZONE);
+    }
+    
     public function index()
     {
         $docente = Auth::user()->docente;
@@ -28,10 +36,10 @@ class AsistenciaController extends Controller
                 ->with('error', 'No se encontró información de docente asociada a su usuario.');
         }
 
+        // Procesar faltas automáticas
         $this->procesarFaltasAutomaticas();
 
-        // 🔥 CORRECCIÓN: Usar timezone de La Paz explícitamente
-        $now = Carbon::now('America/La_Paz');
+        $now = $this->getNowLaPaz();
         $fechaActual = $now->format('Y-m-d');
         $horaActual = $now->format('H:i:s');
         
@@ -47,20 +55,20 @@ class AsistenciaController extends Controller
         
         $diaActual = $diasSemana[$now->format('l')];
 
+        // Obtener horarios del día
         $horarios = Horario::where('id_docente', $docente->registro)
             ->where('dia', $diaActual)
             ->where('activo', true)
             ->with(['materia', 'grupo', 'aula'])
             ->get();
 
-        $horariosDisponibles = $horarios->filter(function ($horario) use ($now) {
-            $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
-            $inicioPermitido = $horaInicio->copy()->subMinutes(10);
-            $finalPermitido = $horaInicio->copy()->addMinutes(20);
-            
-            return $now->between($inicioPermitido, $finalPermitido);
+        // Filtrar horarios disponibles usando el método del modelo
+        $horaActual = $now->format('H:i:s');
+        $horariosDisponibles = $horarios->filter(function ($horario) use ($horaActual) {
+            return Asistencia::estaDentroDeRango($horaActual, $horario->hora_inicio);
         });
 
+        // Obtener asistencias ya registradas hoy
         $asistenciasRegistradas = Asistencia::where('id_docente', $docente->registro)
             ->where('fecha', $fechaActual)
             ->pluck('id_horario')
@@ -76,17 +84,22 @@ class AsistenciaController extends Controller
 
     private function procesarFaltasAutomaticas()
     {
-        $ultimaEjecucion = Cache::get('ultima_ejecucion_faltas_automaticas');
+        // Usar cache con TTL más corto y clave única por día
+        $now = $this->getNowLaPaz();
+        $cacheKey = 'faltas_automaticas_' . $now->format('Y-m-d');
         
-        if ($ultimaEjecucion && now()->diffInMinutes($ultimaEjecucion) < 30) {
+        // Si ya se procesó hoy, salir
+        if (Cache::has($cacheKey)) {
+            \Log::info('Faltas automáticas ya procesadas hoy', ['fecha' => $now->format('Y-m-d')]);
             return;
         }
         
-        Cache::put('ultima_ejecucion_faltas_automaticas', now(), 60);
+        \Log::info('Iniciando procesamiento de faltas automáticas', [
+            'fecha' => $now->format('Y-m-d'),
+            'hora' => $now->format('H:i:s')
+        ]);
         
-        $now = Carbon::now('America/La_Paz');
         $fechaActual = $now->format('Y-m-d');
-        
         $diasSemana = [
             'Monday' => 'Lunes',
             'Tuesday' => 'Martes',
@@ -99,6 +112,7 @@ class AsistenciaController extends Controller
         
         $diaActual = $diasSemana[$now->format('l')];
         
+        // Obtener todos los horarios del día
         $horarios = Horario::where('dia', $diaActual)
             ->where('activo', true)
             ->get();
@@ -106,18 +120,26 @@ class AsistenciaController extends Controller
         $faltasRegistradas = 0;
         
         foreach ($horarios as $horario) {
-            $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
-            $limiteRegistro = $horaInicio->copy()->addMinutes(20);
-            
-            if ($now->greaterThan($limiteRegistro)) {
-                $asistenciaExiste = Asistencia::where('id_docente', $horario->id_docente)
-                    ->where('id_horario', $horario->id)
-                    ->where('fecha', $fechaActual)
-                    ->exists();
+            try {
+                // Crear Carbon con la hora del horario
+                $horaInicio = Carbon::createFromFormat(
+                    'Y-m-d H:i:s',
+                    $now->format('Y-m-d') . ' ' . $horario->hora_inicio,
+                    self::TIMEZONE
+                );
                 
-                if (!$asistenciaExiste) {
-                    try {
-                        Asistencia::create([
+                $limiteRegistro = $horaInicio->copy()->addMinutes(20);
+                
+                // Si ya pasó el límite de registro
+                if ($now->greaterThan($limiteRegistro)) {
+                    // Verificar si ya existe registro de asistencia
+                    $asistenciaExiste = Asistencia::where('id_docente', $horario->id_docente)
+                        ->where('id_horario', $horario->id)
+                        ->where('fecha', $fechaActual)
+                        ->exists();
+                    
+                    if (!$asistenciaExiste) {
+                        $asistencia = Asistencia::create([
                             'fecha' => $fechaActual,
                             'hora_llegada' => null,
                             'estado' => 'Falta',
@@ -129,12 +151,27 @@ class AsistenciaController extends Controller
                         
                         $faltasRegistradas++;
                         
-                    } catch (\Exception $e) {
-                        \Log::error("Error al registrar falta: " . $e->getMessage());
+                        \Log::info('Falta automática registrada', [
+                            'id_asistencia' => $asistencia->id,
+                            'id_horario' => $horario->id,
+                            'id_docente' => $horario->id_docente
+                        ]);
                     }
                 }
+            } catch (\Exception $e) {
+                \Log::error("Error al procesar horario", [
+                    'error' => $e->getMessage(),
+                    'id_horario' => $horario->id ?? 'N/A'
+                ]);
             }
         }
+        
+        // Marcar como procesado por hoy (expira en 24 horas)
+        Cache::put($cacheKey, true, now()->endOfDay());
+        
+        \Log::info('Procesamiento de faltas completado', [
+            'faltas_registradas' => $faltasRegistradas
+        ]);
     }
 
     public function form($id)
@@ -148,15 +185,16 @@ class AsistenciaController extends Controller
 
         $horario = Horario::with(['materia', 'grupo', 'aula'])->findOrFail($id);
         
+        // Verificar autorización
         if ($horario->id_docente != $docente->registro) {
             return redirect()->route('asistencias.index')
                 ->with('error', 'No tiene autorización para registrar asistencia en este horario.');
         }
 
-        // 🔥 CORRECCIÓN: Usar timezone explícito
-        $now = Carbon::now('America/La_Paz');
+        $now = $this->getNowLaPaz();
         $fechaActual = $now->format('Y-m-d');
         
+        // Verificar si ya existe asistencia
         $asistenciaExistente = Asistencia::where('id_docente', $docente->registro)
             ->where('id_horario', $horario->id)
             ->where('fecha', $fechaActual)
@@ -167,11 +205,10 @@ class AsistenciaController extends Controller
                 ->with('error', 'Ya registró su asistencia para esta clase.');
         }
 
-        $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
-        $inicioPermitido = $horaInicio->copy()->subMinutes(10);
-        $finalPermitido = $horaInicio->copy()->addMinutes(20);
-
-        if (!$now->between($inicioPermitido, $finalPermitido)) {
+        // Validar rango horario usando el método del modelo
+        $horaActual = $now->format('H:i:s');
+        
+        if (!Asistencia::estaDentroDeRango($horaActual, $horario->hora_inicio)) {
             return redirect()->route('asistencias.index')
                 ->with('error', 'Fuera del horario permitido para registrar asistencia.');
         }
@@ -179,20 +216,18 @@ class AsistenciaController extends Controller
         return view('asistencias.form', compact('horario'));
     }
 
-    /**
-     * 🔥 MÉTODO PRINCIPAL CORREGIDO
-     */
     public function registrar(Request $request)
     {
-        // Log inicial para debugging
+        $now = $this->getNowLaPaz();
+        
         \Log::info('=== INICIO REGISTRO ASISTENCIA ===', [
             'request_data' => $request->all(),
             'user_id' => Auth::id(),
             'ip' => $request->ip(),
-            'timezone_server' => config('app.timezone'),
-            'timezone_env' => env('APP_TIMEZONE'),
-            'now' => now()->toDateTimeString(),
-            'now_lapaz' => Carbon::now('America/La_Paz')->toDateTimeString(),
+            'timezone_config' => config('app.timezone'),
+            'timezone_usado' => self::TIMEZONE,
+            'fecha_hora_lapaz' => $now->toDateTimeString(),
+            'fecha_hora_utc' => Carbon::now('UTC')->toDateTimeString(),
         ]);
 
         $request->validate([
@@ -204,76 +239,73 @@ class AsistenciaController extends Controller
         $docente = Auth::user()->docente;
         
         if (!$docente) {
-            \Log::error('Docente no encontrado para usuario', ['user_id' => Auth::id()]);
+            \Log::error('Docente no encontrado', ['user_id' => Auth::id()]);
             return back()->with('error', 'No se encontró información de docente asociada a su usuario.');
         }
 
         $horario = Horario::findOrFail($request->id_horario);
         
-        // 🔥 CORRECCIÓN CRÍTICA: Usar timezone de La Paz
-        $now = Carbon::now('America/La_Paz');
         $fechaActual = $now->format('Y-m-d');
         $horaActual = $now->format('H:i:s');
 
-        \Log::info('Datos de tiempo', [
+        \Log::info('Datos de tiempo para registro', [
             'fecha_actual' => $fechaActual,
             'hora_actual' => $horaActual,
             'hora_inicio_horario' => $horario->hora_inicio,
+            'timezone' => self::TIMEZONE
         ]);
 
         try {
             DB::beginTransaction();
 
-            // Validación 1: Horario pertenece al docente
+            // Verificar autorización
             if ($horario->id_docente != $docente->registro) {
                 \Log::warning('Intento de registro en horario ajeno', [
                     'horario_docente' => $horario->id_docente,
                     'docente_actual' => $docente->registro
                 ]);
+                DB::rollBack();
                 return back()->with('error', 'No tiene autorización para registrar asistencia en este horario.');
             }
 
-            // Validación 2: Username correcto
+            // Verificar username
             if (Auth::user()->username !== $request->username) {
                 \Log::warning('Username incorrecto', [
                     'esperado' => Auth::user()->username,
                     'recibido' => $request->username
                 ]);
+                DB::rollBack();
                 return back()
                     ->withErrors(['username' => 'El nombre de usuario no coincide con su cuenta.'])
                     ->withInput();
             }
 
-            // Validación 3: No existe asistencia previa
+            // Verificar si ya existe asistencia
             $asistenciaExistente = Asistencia::where('id_docente', $docente->registro)
                 ->where('id_horario', $request->id_horario)
                 ->where('fecha', $fechaActual)
                 ->first();
 
             if ($asistenciaExistente) {
-                \Log::info('Asistencia ya existe', ['asistencia_id' => $asistenciaExistente->id]);
+                \Log::info('Asistencia duplicada', ['asistencia_id' => $asistenciaExistente->id]);
+                DB::rollBack();
                 return back()->with('error', 'Ya registró su asistencia para esta clase.');
             }
 
-            // Validación 4: Rango de tiempo permitido
-            $horaInicio = Carbon::parse($horario->hora_inicio)->setDate($now->year, $now->month, $now->day);
-            $inicioPermitido = $horaInicio->copy()->subMinutes(10);
-            $finalPermitido = $horaInicio->copy()->addMinutes(20);
-
+            // Validar rango horario usando el método del modelo
             \Log::info('Validación de rango horario', [
-                'hora_actual' => $now->format('H:i:s'),
-                'hora_inicio' => $horaInicio->format('H:i:s'),
-                'inicio_permitido' => $inicioPermitido->format('H:i:s'),
-                'final_permitido' => $finalPermitido->format('H:i:s'),
-                'esta_en_rango' => $now->between($inicioPermitido, $finalPermitido)
+                'hora_actual' => $horaActual,
+                'hora_inicio_horario' => $horario->hora_inicio,
+                'esta_en_rango' => Asistencia::estaDentroDeRango($horaActual, $horario->hora_inicio)
             ]);
 
-            if (!$now->between($inicioPermitido, $finalPermitido)) {
+            if (!Asistencia::estaDentroDeRango($horaActual, $horario->hora_inicio)) {
+                DB::rollBack();
                 return back()->with('error', 'Fuera del horario permitido para registrar asistencia. Puede registrar desde 10 minutos antes hasta 20 minutos después de la hora de inicio.');
             }
 
-            // 🔥 CALCULAR ESTADO CORRECTAMENTE
-            $estado = $this->calcularEstado($horaActual, $horario->hora_inicio);
+            // Calcular estado usando el método del modelo
+            $estado = Asistencia::calcularEstado($horaActual, $horario->hora_inicio);
             $minutosDif = Asistencia::calcularMinutosDiferencia($horaActual, $horario->hora_inicio);
 
             \Log::info('Estado calculado', [
@@ -283,7 +315,7 @@ class AsistenciaController extends Controller
                 'minutos_diferencia' => $minutosDif
             ]);
 
-            // Crear registro de asistencia
+            // Crear asistencia
             $asistencia = Asistencia::create([
                 'fecha' => $fechaActual,
                 'hora_llegada' => $horaActual,
@@ -294,9 +326,11 @@ class AsistenciaController extends Controller
                 'justificada' => false,
             ]);
 
-            \Log::info('Asistencia creada exitosamente', [
-                'asistencia_id' => $asistencia->id,
-                'estado' => $asistencia->estado
+            \Log::info('Asistencia creada', [
+                'id' => $asistencia->id,
+                'estado' => $asistencia->estado,
+                'fecha' => $asistencia->fecha,
+                'hora' => $asistencia->hora_llegada
             ]);
 
             // Registrar en bitácora
@@ -311,7 +345,9 @@ class AsistenciaController extends Controller
 
             DB::commit();
 
-            \Log::info('=== ASISTENCIA REGISTRADA EXITOSAMENTE ===');
+            \Log::info('=== ASISTENCIA REGISTRADA EXITOSAMENTE ===', [
+                'asistencia_id' => $asistencia->id
+            ]);
 
             $mensaje = $estado === 'A tiempo' 
                 ? 'Asistencia registrada correctamente.' 
@@ -329,14 +365,6 @@ class AsistenciaController extends Controller
             ]);
             return back()->with('error', 'Error al registrar asistencia: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * 🔥 Delegar al método del modelo
-     */
-    private function calcularEstado($horaLlegada, $horaInicio)
-    {
-        return Asistencia::calcularEstado($horaLlegada, $horaInicio);
     }
 
     public function historial(Request $request)

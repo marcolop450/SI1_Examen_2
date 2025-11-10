@@ -29,7 +29,7 @@ class Asistencia extends Model
         ];
     }
 
-    // Relaciones
+    //Relaciones
     public function docente()
     {
         return $this->belongsTo(Docente::class, 'id_docente', 'registro');
@@ -40,7 +40,7 @@ class Asistencia extends Model
         return $this->belongsTo(Horario::class, 'id_horario');
     }
 
-    // Scopes útiles
+    //Scopes
     public function scopeATiempo($query)
     {
         return $query->where('estado', 'A tiempo');
@@ -71,19 +71,9 @@ class Asistencia extends Model
         return $query->where('id_docente', $idDocente);
     }
 
-    /**
-     * 🔥 MÉTODO CORREGIDO - VERSIÓN DEFINITIVA
-     * Calcula el estado de asistencia basado en la hora de llegada
-     * 
-     * Reglas:
-     * - A tiempo: Llega antes o hasta 5 minutos después del inicio
-     * - Tardanza: Llega entre 6 y 20 minutos después del inicio  
-     * - Falta: Llega más de 20 minutos después
-     */
     public static function calcularEstado($horaLlegada, $horaInicio)
     {
         try {
-            // 🔥 SOLUCIÓN: Usar el mismo día para ambas horas
             $now = Carbon::now('America/La_Paz');
             
             $llegada = Carbon::createFromFormat('H:i:s', $horaLlegada, 'America/La_Paz')
@@ -100,28 +90,20 @@ class Asistencia extends Model
                 'llegada_lessThan_inicio' => $llegada->lessThan($inicio),
                 'llegada_greaterThan_inicio' => $llegada->greaterThan($inicio),
             ]);
-            
-            // Si llegó ANTES o EXACTAMENTE a la hora de inicio
             if ($llegada->lessThanOrEqualTo($inicio)) {
                 \Log::info('✅ Estado: A tiempo (llegó antes o exacto)');
                 return 'A tiempo';
             }
             
-            // Si llegó DESPUÉS, calcular cuántos minutos de retraso
-            // diffInMinutes($inicio, false) - el false hace que sea con signo
             $minutosRetraso = $inicio->diffInMinutes($llegada, false);
             
             \Log::info('⏰ Minutos de retraso calculados', [
                 'minutos_retraso' => $minutosRetraso
             ]);
-            
-            // Hasta 5 minutos después = A tiempo
             if ($minutosRetraso <= 5) {
                 \Log::info('✅ Estado: A tiempo (dentro de 5 min de tolerancia)');
                 return 'A tiempo';
             }
-            
-            // Entre 6 y 20 minutos = Tardanza
             if ($minutosRetraso <= 20) {
                 \Log::info('⚠️ Estado: Tardanza');
                 return 'Tardanza';
@@ -142,11 +124,6 @@ class Asistencia extends Model
         }
     }
 
-    /**
-     * 🔥 MÉTODO CORREGIDO
-     * Verifica si el registro está dentro del rango permitido
-     * Rango: 10 minutos antes hasta 20 minutos después del inicio
-     */
     public static function estaDentroDeRango($horaActual, $horaInicio)
     {
         try {
@@ -158,9 +135,8 @@ class Asistencia extends Model
             $inicio = Carbon::createFromFormat('H:i:s', $horaInicio, 'America/La_Paz')
                 ->setDate($now->year, $now->month, $now->day);
             
-            // Calcular límites del rango permitido
-            $limiteInferior = $inicio->copy()->subMinutes(10); // 10 min antes
-            $limiteSuperior = $inicio->copy()->addMinutes(20); // 20 min después
+            $limiteInferior = $inicio->copy()->subMinutes(10); 
+            $limiteSuperior = $inicio->copy()->addMinutes(20); 
             
             \Log::info('🔍 Verificando rango permitido', [
                 'hora_actual' => $actual->format('H:i:s'),
@@ -169,7 +145,6 @@ class Asistencia extends Model
                 'esta_en_rango' => $actual->between($limiteInferior, $limiteSuperior)
             ]);
             
-            // Verificar si está dentro del rango
             return $actual->between($limiteInferior, $limiteSuperior);
             
         } catch (\Exception $e) {
@@ -182,11 +157,6 @@ class Asistencia extends Model
         }
     }
 
-    /**
-     * 🔥 MÉTODO CORREGIDO
-     * Calcula los minutos de diferencia (positivo = tarde, negativo = temprano)
-     * Útil para mostrar en la UI
-     */
     public static function calcularMinutosDiferencia($horaLlegada, $horaInicio)
     {
         try {
@@ -198,12 +168,9 @@ class Asistencia extends Model
             $inicio = Carbon::createFromFormat('H:i:s', $horaInicio, 'America/La_Paz')
                 ->setDate($now->year, $now->month, $now->day);
             
-            // Si llegó ANTES del inicio, retornar negativo
             if ($llegada->lessThan($inicio)) {
                 return -$inicio->diffInMinutes($llegada);
-            }
-            
-            // Si llegó DESPUÉS, retornar positivo
+            }           
             return $llegada->diffInMinutes($inicio);
             
         } catch (\Exception $e) {
@@ -214,9 +181,6 @@ class Asistencia extends Model
         }
     }
 
-    /**
-     * Obtiene el badge de color según el estado
-     */
     public function getBadgeColorAttribute()
     {
         return match($this->estado) {
@@ -227,9 +191,6 @@ class Asistencia extends Model
         };
     }
 
-    /**
-     * Formatea la fecha y hora de llegada
-     */
     public function getLlegadaFormateadaAttribute()
     {
         if (!$this->hora_llegada) {

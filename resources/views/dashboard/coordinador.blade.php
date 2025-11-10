@@ -30,7 +30,7 @@
                                 </div>
                                 <div>
                                     <h3 class="text-3xl font-bold text-white">
-                                        ¡Bienvenido, {{ $user->nombre }}!
+                                        ¡Bienvenido, {{ $user->nombre }} ({{ $user->username }})!
                                     </h3>
                                     <p class="text-blue-100 mt-1">Sistema de Gestión Académica - FICCT</p>
                                 </div>

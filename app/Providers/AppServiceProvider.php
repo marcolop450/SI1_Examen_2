@@ -6,34 +6,37 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL; 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
+use Carbon\Carbon;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
+        // Forzar HTTPS en producción
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
-        //zona horaria Bolivia
+        
+        // Configurar zona horaria Bolivia
         date_default_timezone_set('America/La_Paz');
         Config::set('app.timezone', 'America/La_Paz');
+        
+        // Configurar Carbon
+        Carbon::setLocale('es');
+        
+        // Configurar PostgreSQL timezone
         try {
             if (config('database.default') === 'pgsql') {
-                DB::unprepared("SET TIME ZONE 'America/La_Paz'");
+                DB::statement("SET timezone = 'America/La_Paz'");
+                \Log::info('✅ PostgreSQL timezone configurado: America/La_Paz');
             }
         } catch (\Exception $e) {
-
+            \Log::warning('⚠️ No se pudo configurar timezone en PostgreSQL: ' . $e->getMessage());
         }
     }
 }

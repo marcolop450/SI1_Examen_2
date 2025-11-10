@@ -264,11 +264,9 @@
 
     <!-- Footer -->
     <div class="footer">
-        Sistema de Gestión Académica - Facultad de Ciencias y Tecnología
+        Sistema de Gestión Académica - FICCT
         <br>
         Universidad Autónoma Gabriel René Moreno
-        <br>
-        Este documento es de carácter oficial y confidencial
     </div>
 </body>
 </html>

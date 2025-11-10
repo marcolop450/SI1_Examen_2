@@ -27,7 +27,7 @@
                         </div>
                         <div>
                             <h3 class="text-3xl font-bold text-white">
-                                ¡Bienvenido, {{ Auth::user()->nombre }} {{ Auth::user()->apellido }}!
+                                ¡Bienvenido, {{ Auth::user()->nombre }} {{ Auth::user()->apellido }} ({{ $user->username }})!
                             </h3>
                             <p class="text-blue-100 mt-1">Panel de Autoridad Académica</p>
                         </div>

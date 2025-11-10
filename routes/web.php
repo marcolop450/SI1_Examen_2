@@ -154,3 +154,35 @@ Route::middleware(['auth'])->prefix('reportes')->name('reportes.')->group(functi
     Route::get('/exportar/aulas/excel', [ReporteController::class, 'exportarAulasExcel'])->name('exportar.aulas-excel');
     Route::get('/exportar/carga-horaria/{idDocente}/excel', [ReporteController::class, 'exportarCargaHorariaExcel'])->name('exportar.carga-horaria-excel');
 });
+
+Route::get('/debug/timezone', function () {
+    $now = \Carbon\Carbon::now('America/La_Paz');
+    
+    return response()->json([
+        'servidor' => [
+            'php_timezone' => date_default_timezone_get(),
+            'date()' => date('Y-m-d H:i:s'),
+            'gmdate_utc' => gmdate('Y-m-d H:i:s'),
+        ],
+        'config' => [
+            'app_timezone' => config('app.timezone'),
+            'db_timezone' => config('database.connections.pgsql.timezone'),
+        ],
+        'carbon' => [
+            'now_sin_timezone' => \Carbon\Carbon::now()->toDateTimeString(),
+            'now_lapaz' => $now->toDateTimeString(),
+            'timezone' => $now->timezoneName,
+        ],
+        'database' => [
+            'timezone_db' => DB::selectOne("SHOW timezone")->timezone ?? 'N/A',
+        ],
+        'prueba_asistencia' => [
+            'hora_actual' => $now->format('H:i:s'),
+            'ejemplo_clase_14_30' => [
+                'hora_inicio' => '14:30:00',
+                'puede_registrar_desde' => $now->copy()->setTime(14, 20, 0)->format('H:i:s'),
+                'puede_registrar_hasta' => $now->copy()->setTime(14, 50, 0)->format('H:i:s'),
+            ],
+        ],
+    ]);
+})->middleware('auth');

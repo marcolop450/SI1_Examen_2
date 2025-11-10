@@ -72,7 +72,7 @@ class CargaHorariaDocenteExport implements FromCollection, WithHeadings, WithSty
             'Especialidad:',
             $docente->especialidad,
             'Email:',
-            $docente->usuario->email,
+            $docente->usuario->correo,
             '',
             ''
         ]);
@@ -88,7 +88,6 @@ class CargaHorariaDocenteExport implements FromCollection, WithHeadings, WithSty
 
         $data->push(['', '', '', '', '', '']); // Fila vacía
 
-        // Resumen por día
         $data->push([
             'RESUMEN DE HORAS POR DÍA',
             '',
@@ -129,7 +128,6 @@ class CargaHorariaDocenteExport implements FromCollection, WithHeadings, WithSty
 
         $data->push(['', '', '', '', '', '']); // Fila vacía
 
-        // Asistencias del mes
         $asistenciasMes = Asistencia::where('id_docente', $docente->registro)
             ->whereMonth('fecha', now()->month)
             ->whereYear('fecha', now()->year)

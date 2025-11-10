@@ -59,7 +59,6 @@ class AsistenciasExport implements FromCollection, WithHeadings, WithMapping, Wi
             'Materia',
             'Grupo',
             'Hora Llegada',
-            'Hora Salida',
             'Estado',
             'Aula/Modalidad',
             'Justificada',
@@ -79,7 +78,6 @@ class AsistenciasExport implements FromCollection, WithHeadings, WithMapping, Wi
             $asistencia->horario->materia->nombre,
             $asistencia->horario->grupo->nombre,
             Carbon::parse($asistencia->hora_llegada)->format('H:i:s'),
-            $asistencia->hora_salida ? Carbon::parse($asistencia->hora_salida)->format('H:i:s') : 'N/A',
             $asistencia->estado,
             $asistencia->horario->es_virtual ? 'Virtual' : ($asistencia->horario->aula->nombre ?? 'N/A'),
             $asistencia->justificada ? 'Sí' : 'No',
@@ -92,7 +90,6 @@ class AsistenciasExport implements FromCollection, WithHeadings, WithMapping, Wi
      */
     public function styles(Worksheet $sheet)
     {
-        // Estilo del encabezado
         $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => [
                 'bold' => true,
@@ -110,7 +107,6 @@ class AsistenciasExport implements FromCollection, WithHeadings, WithMapping, Wi
             ],
         ]);
 
-        // Auto-ajustar ancho de columnas
         foreach (range('A', 'K') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
