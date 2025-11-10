@@ -186,3 +186,16 @@ Route::get('/debug/timezone', function () {
         ],
     ]);
 })->middleware('auth');
+
+Route::get('/ver-logs', function () {
+    $logFile = storage_path('logs/laravel.log');
+    
+    if (!file_exists($logFile)) {
+        return 'No hay archivo de logs';
+    }
+    
+    $lines = file($logFile);
+    $lastLines = array_slice($lines, -100); // Últimas 100 líneas
+    
+    return '<pre>' . implode('', $lastLines) . '</pre>';
+})->middleware('auth');

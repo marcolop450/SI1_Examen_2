@@ -220,47 +220,62 @@ class AsistenciaController extends Controller
     {
         $now = $this->getNowLaPaz();
         
-        \Log::info('=== INICIO REGISTRO ASISTENCIA ===', [
-            'request_data' => $request->all(),
+        // LOG INICIAL - CRÍTICO
+        \Log::info('════════════════════════════════════════');
+        \Log::info('🚀 INICIO REGISTRO ASISTENCIA', [
             'user_id' => Auth::id(),
-            'ip' => $request->ip(),
-            'timezone_config' => config('app.timezone'),
-            'timezone_usado' => self::TIMEZONE,
+            'username' => Auth::user()->username,
+            'request_username' => $request->username,
+            'id_horario' => $request->id_horario,
             'fecha_hora_lapaz' => $now->toDateTimeString(),
-            'fecha_hora_utc' => Carbon::now('UTC')->toDateTimeString(),
+            'ip' => $request->ip(),
         ]);
 
-        $request->validate([
-            'id_horario' => 'required|exists:horarios,id',
-            'username' => 'required|string',
-            'observaciones' => 'nullable|string|max:500',
-        ]);
+        // Validación
+        try {
+            $request->validate([
+                'id_horario' => 'required|exists:horarios,id',
+                'username' => 'required|string',
+                'observaciones' => 'nullable|string|max:500',
+            ]);
+            \Log::info('✅ Validación pasada');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('❌ Error de validación', [
+                'errors' => $e->errors()
+            ]);
+            throw $e;
+        }
 
         $docente = Auth::user()->docente;
         
         if (!$docente) {
-            \Log::error('Docente no encontrado', ['user_id' => Auth::id()]);
+            \Log::error('❌ Docente no encontrado', ['user_id' => Auth::id()]);
             return back()->with('error', 'No se encontró información de docente asociada a su usuario.');
         }
+
+        \Log::info('👤 Docente encontrado', [
+            'registro' => $docente->registro,
+            'nombre' => $docente->usuario->nombre ?? 'N/A'
+        ]);
 
         $horario = Horario::findOrFail($request->id_horario);
         
         $fechaActual = $now->format('Y-m-d');
         $horaActual = $now->format('H:i:s');
 
-        \Log::info('Datos de tiempo para registro', [
+        \Log::info('⏰ Datos de tiempo', [
             'fecha_actual' => $fechaActual,
             'hora_actual' => $horaActual,
             'hora_inicio_horario' => $horario->hora_inicio,
-            'timezone' => self::TIMEZONE
         ]);
 
         try {
             DB::beginTransaction();
+            \Log::info('📊 Transacción iniciada');
 
             // Verificar autorización
             if ($horario->id_docente != $docente->registro) {
-                \Log::warning('Intento de registro en horario ajeno', [
+                \Log::warning('⚠️ Horario no pertenece al docente', [
                     'horario_docente' => $horario->id_docente,
                     'docente_actual' => $docente->registro
                 ]);
@@ -270,7 +285,7 @@ class AsistenciaController extends Controller
 
             // Verificar username
             if (Auth::user()->username !== $request->username) {
-                \Log::warning('Username incorrecto', [
+                \Log::warning('⚠️ Username incorrecto', [
                     'esperado' => Auth::user()->username,
                     'recibido' => $request->username
                 ]);
@@ -280,42 +295,53 @@ class AsistenciaController extends Controller
                     ->withInput();
             }
 
-            // Verificar si ya existe asistencia
+            // Verificar duplicado
             $asistenciaExistente = Asistencia::where('id_docente', $docente->registro)
                 ->where('id_horario', $request->id_horario)
                 ->where('fecha', $fechaActual)
                 ->first();
 
             if ($asistenciaExistente) {
-                \Log::info('Asistencia duplicada', ['asistencia_id' => $asistenciaExistente->id]);
+                \Log::info('⚠️ Asistencia ya existe', ['id' => $asistenciaExistente->id]);
                 DB::rollBack();
                 return back()->with('error', 'Ya registró su asistencia para esta clase.');
             }
 
-            // Validar rango horario usando el método del modelo
-            \Log::info('Validación de rango horario', [
-                'hora_actual' => $horaActual,
-                'hora_inicio_horario' => $horario->hora_inicio,
-                'esta_en_rango' => Asistencia::estaDentroDeRango($horaActual, $horario->hora_inicio)
+            // Validar rango horario
+            $horaInicio = Carbon::createFromFormat(
+                'Y-m-d H:i:s',
+                $now->format('Y-m-d') . ' ' . $horario->hora_inicio,
+                self::TIMEZONE
+            );
+            
+            $inicioPermitido = $horaInicio->copy()->subMinutes(10);
+            $finalPermitido = $horaInicio->copy()->addMinutes(20);
+
+            \Log::info('🕐 Validación de rango', [
+                'hora_actual' => $now->format('H:i:s'),
+                'inicio_permitido' => $inicioPermitido->format('H:i:s'),
+                'final_permitido' => $finalPermitido->format('H:i:s'),
+                'esta_en_rango' => $now->between($inicioPermitido, $finalPermitido)
             ]);
 
-            if (!Asistencia::estaDentroDeRango($horaActual, $horario->hora_inicio)) {
+            if (!$now->between($inicioPermitido, $finalPermitido)) {
+                \Log::warning('❌ Fuera de rango horario');
                 DB::rollBack();
-                return back()->with('error', 'Fuera del horario permitido para registrar asistencia. Puede registrar desde 10 minutos antes hasta 20 minutos después de la hora de inicio.');
+                return back()->with('error', 'Fuera del horario permitido para registrar asistencia.');
             }
 
-            // Calcular estado usando el método del modelo
+            // Calcular estado
             $estado = Asistencia::calcularEstado($horaActual, $horario->hora_inicio);
-            $minutosDif = Asistencia::calcularMinutosDiferencia($horaActual, $horario->hora_inicio);
 
-            \Log::info('Estado calculado', [
-                'estado' => $estado,
+            \Log::info('📝 Intentando crear asistencia', [
+                'fecha' => $fechaActual,
                 'hora_llegada' => $horaActual,
-                'hora_inicio' => $horario->hora_inicio,
-                'minutos_diferencia' => $minutosDif
+                'estado' => $estado,
+                'id_docente' => $docente->registro,
+                'id_horario' => $request->id_horario,
             ]);
 
-            // Crear asistencia
+            // CREAR ASISTENCIA
             $asistencia = Asistencia::create([
                 'fecha' => $fechaActual,
                 'hora_llegada' => $horaActual,
@@ -326,14 +352,14 @@ class AsistenciaController extends Controller
                 'justificada' => false,
             ]);
 
-            \Log::info('Asistencia creada', [
+            \Log::info('✅ ASISTENCIA CREADA', [
                 'id' => $asistencia->id,
                 'estado' => $asistencia->estado,
                 'fecha' => $asistencia->fecha,
                 'hora' => $asistencia->hora_llegada
             ]);
 
-            // Registrar en bitácora
+            // Bitácora
             Bitacora::create([
                 'accion' => 'Registro Asistencia',
                 'descripcion' => "Docente {$docente->usuario->nombre} {$docente->usuario->apellido} registró asistencia. Estado: {$estado}",
@@ -344,10 +370,8 @@ class AsistenciaController extends Controller
             ]);
 
             DB::commit();
-
-            \Log::info('=== ASISTENCIA REGISTRADA EXITOSAMENTE ===', [
-                'asistencia_id' => $asistencia->id
-            ]);
+            \Log::info('✅ TRANSACCIÓN COMMIT EXITOSO');
+            \Log::info('════════════════════════════════════════');
 
             $mensaje = $estado === 'A tiempo' 
                 ? 'Asistencia registrada correctamente.' 
@@ -357,12 +381,14 @@ class AsistenciaController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('=== ERROR AL REGISTRAR ASISTENCIA ===', [
+            \Log::error('💥 ERROR CRÍTICO AL REGISTRAR', [
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
+            \Log::info('════════════════════════════════════════');
+            
             return back()->with('error', 'Error al registrar asistencia: ' . $e->getMessage());
         }
     }

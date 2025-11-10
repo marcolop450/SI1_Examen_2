@@ -1,3 +1,11 @@
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    console.log('📤 Formulario enviándose...');
+    console.log('Username:', document.getElementById('username').value);
+    console.log('ID Horario:', document.querySelector('[name="id_horario"]').value);
+    console.log('Observaciones:', document.getElementById('observaciones').value);
+});
+</script>
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
