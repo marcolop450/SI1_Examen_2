@@ -40,12 +40,6 @@
                                 <p class="text-xs font-medium text-gray-600 mb-1">Nombre del Grupo</p>
                                 <p class="text-lg font-bold text-gray-900">{{ $grupo->nombre }}</p>
                             </div>
-                            <div>
-                                <p class="text-xs font-medium text-gray-600 mb-1">Turno</p>
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                                    {{ $grupo->turno }}
-                                </span>
-                            </div>
                         </div>
                     </div>
 

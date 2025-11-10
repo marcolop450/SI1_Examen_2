@@ -18,6 +18,21 @@
                     @method('PUT')
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Nombre -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Nombre <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="nombre" 
+                                   value="{{ old('nombre', $materia->nombre) }}" 
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                            @error('nombre')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         <!-- Código -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -52,19 +67,39 @@
                             @enderror
                         </div>
 
-                        <!-- Nombre -->
-                        <div class="md:col-span-2">
+                        <!-- Tipo de Materia (Electiva o Normal) -->
+                        <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                Nombre <span class="text-red-500">*</span>
+                                Tipo de Materia <span class="text-red-500">*</span>
                             </label>
-                            <input type="text" 
-                                   name="nombre" 
-                                   value="{{ old('nombre', $materia->nombre) }}" 
-                                   required
-                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
-                            @error('nombre')
+                            <select name="es_electiva" 
+                                    required
+                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                                <option value="0" {{ old('es_electiva', $materia->es_electiva) == 0 ? 'selected' : '' }}>Normal (4h 30min/semana)</option>
+                                <option value="1" {{ old('es_electiva', $materia->es_electiva) == 1 ? 'selected' : '' }}>Electiva (3h/semana)</option>
+                            </select>
+                            @error('es_electiva')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
+                            <p class="mt-1 text-xs text-gray-500">Las materias normales tienen 4h 30min semanales, las electivas 3h</p>
+                        </div>
+
+                        <!-- Días por semana -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Días por Semana <span class="text-red-500">*</span>
+                            </label>
+                            <select name="dias_semana" 
+                                    required
+                                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                                <option value="1" {{ old('dias_semana', $materia->dias_semana) == 1 ? 'selected' : '' }}>1 día por semana</option>
+                                <option value="2" {{ old('dias_semana', $materia->dias_semana) == 2 ? 'selected' : '' }}>2 días por semana</option>
+                                <option value="3" {{ old('dias_semana', $materia->dias_semana) == 3 ? 'selected' : '' }}>3 días por semana</option>
+                            </select>
+                            @error('dias_semana')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1 text-xs text-gray-500">La carga horaria se distribuirá en estos días</p>
                         </div>
 
                         <!-- Horas Teóricas -->
@@ -121,6 +156,7 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Contenido</label>
                             <textarea name="contenido" 
                                       rows="3"
+                                      placeholder="Descripción del contenido de la materia..."
                                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition">{{ old('contenido', $materia->contenido) }}</textarea>
                             @error('contenido')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

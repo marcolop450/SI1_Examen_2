@@ -10,8 +10,7 @@ return new class extends Migration
     {
         Schema::create('grupos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 10);
-            $table->string('turno', 20)->nullable();
+            $table->string('nombre', 10)->unique();
             $table->integer('capacidad_maxima')->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();

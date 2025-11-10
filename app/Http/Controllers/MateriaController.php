@@ -31,15 +31,33 @@ class MateriaController extends Controller
             'horas_teoricas' => 'required|integer|min:0',
             'horas_practicas' => 'required|integer|min:0',
             'creditos' => 'required|integer|min:1|max:10',
+            'es_electiva' => 'required|boolean',
+            'dias_semana' => 'required|integer|in:1,2,3',
         ]);
 
         DB::beginTransaction();
         try {
-            $materia = Materia::create($request->all());
+            // Calcular horas_semanales según si es electiva o no
+            $horas_semanales = $request->es_electiva ? 180 : 270; // 3h o 4h30min en minutos
+
+            $materia = Materia::create([
+                'nombre' => $request->nombre,
+                'codigo' => $request->codigo,
+                'contenido' => $request->contenido,
+                'semestre' => $request->semestre,
+                'horas_teoricas' => $request->horas_teoricas,
+                'horas_practicas' => $request->horas_practicas,
+                'creditos' => $request->creditos,
+                'es_electiva' => $request->es_electiva,
+                'horas_semanales' => $horas_semanales,
+                'dias_semana' => $request->dias_semana,
+                'activo' => true,
+            ]);
 
             Bitacora::create([
                 'accion' => 'Crear Materia',
-                'descripcion' => "Se creó la materia: {$request->nombre} ({$request->codigo})",
+                'descripcion' => "Se creó la materia: {$request->nombre} ({$request->codigo}) - " . 
+                                ($request->es_electiva ? 'Electiva' : 'Normal') . " - {$request->dias_semana} días/semana",
                 'tabla_afectada' => 'materias',
                 'registro_afectado' => $materia->id,
                 'ip_direccion' => request()->ip(),
@@ -79,11 +97,27 @@ class MateriaController extends Controller
             'horas_teoricas' => 'required|integer|min:0',
             'horas_practicas' => 'required|integer|min:0',
             'creditos' => 'required|integer|min:1|max:10',
+            'es_electiva' => 'required|boolean',
+            'dias_semana' => 'required|integer|in:2,3',
         ]);
 
         DB::beginTransaction();
         try {
-            $materia->update($request->all());
+            // Calcular horas_semanales según si es electiva o no
+            $horas_semanales = $request->es_electiva ? 180 : 270;
+
+            $materia->update([
+                'nombre' => $request->nombre,
+                'codigo' => $request->codigo,
+                'contenido' => $request->contenido,
+                'semestre' => $request->semestre,
+                'horas_teoricas' => $request->horas_teoricas,
+                'horas_practicas' => $request->horas_practicas,
+                'creditos' => $request->creditos,
+                'es_electiva' => $request->es_electiva,
+                'horas_semanales' => $horas_semanales,
+                'dias_semana' => $request->dias_semana,
+            ]);
 
             Bitacora::create([
                 'accion' => 'Actualizar Materia',
@@ -117,7 +151,7 @@ class MateriaController extends Controller
 
             Bitacora::create([
                 'accion' => 'Desactivar Materia',
-                'descripcion' => "Se desactivo la materia: {$materia->nombre} ({$materia->codigo})",
+                'descripcion' => "Se desactivó la materia: {$materia->nombre} ({$materia->codigo})",
                 'tabla_afectada' => 'materias',
                 'registro_afectado' => $id,
                 'ip_direccion' => request()->ip(),
@@ -132,6 +166,7 @@ class MateriaController extends Controller
             return back()->with('error', 'Error al desactivar materia: ' . $e->getMessage());
         }
     }
+
     //Listar materias inactivas
     public function inactivos()
     {

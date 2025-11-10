@@ -8,7 +8,7 @@ use App\Models\Rol;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-//Maatwebsite ayuda en la parte de manerjar cosas con excel
+//Maatwebsite ayuda en la parte de manerjar cosas con excel.
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\SkipsOnError;

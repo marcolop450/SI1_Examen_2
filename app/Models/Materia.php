@@ -18,6 +18,9 @@ class Materia extends Model
         'horas_practicas',
         'creditos',
         'activo',
+        'es_electiva',      
+        'horas_semanales',  
+        'dias_semana',   
     ];
 
     protected function casts(): array

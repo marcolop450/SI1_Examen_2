@@ -57,7 +57,6 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nombre</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Turno</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Capacidad Máxima</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -67,13 +66,6 @@
                                 <tr class="hover:bg-gray-50 transition duration-150">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="font-semibold text-gray-800">{{ $grupo->nombre }}</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                            {{ $grupo->turno == 'Mañana' ? 'bg-yellow-100 text-yellow-800' : 
-                                               ($grupo->turno == 'Tarde' ? 'bg-orange-100 text-orange-800' : 'bg-indigo-100 text-indigo-800') }}">
-                                            {{ $grupo->turno == 'Mañana' ? '🌅' : ($grupo->turno == 'Tarde' ? '☀️' : '🌙') }} {{ $grupo->turno }}
-                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

@@ -28,8 +28,8 @@ class Horario extends Model
         return [
             'activo' => 'boolean',
             'es_virtual' => 'boolean',
-            'hora_inicio' => 'datetime:H:i',
-            'hora_final' => 'datetime:H:i',
+            // NO USAR datetime para campos TIME
+            // Laravel los maneja automáticamente como string en formato H:i:s
         ];
     }
 
@@ -78,5 +78,21 @@ class Horario extends Model
     public function scopePorGestion($query, $gestion)
     {
         return $query->where('gestion', $gestion);
+    }
+
+    /**
+     * Obtiene la hora de inicio en formato H:i
+     */
+    public function getHoraInicioFormateadaAttribute()
+    {
+        return substr($this->hora_inicio, 0, 5);
+    }
+
+    /**
+     * Obtiene la hora final en formato H:i
+     */
+    public function getHoraFinalFormateadaAttribute()
+    {
+        return substr($this->hora_final, 0, 5);
     }
 }
