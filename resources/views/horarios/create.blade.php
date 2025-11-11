@@ -75,9 +75,12 @@
                                 <option value="">Seleccione una materia...</option>
                                 @foreach($materias as $materia)
                                     <option value="{{ $materia->id }}" 
-                                            data-horas="{{ $materia->horas_semanales ?? 4.5 }}"
+                                            data-horas="{{ $materia->horas_semanales ?? ($materia->es_electiva ? 3 : 4.5) }}"
                                             {{ old('id_materia') == $materia->id ? 'selected' : '' }}>
                                         {{ $materia->codigo }} - {{ $materia->nombre }}
+                                        @if($materia->es_electiva)
+                                            <span class="text-xs">(Electiva - 3hrs)</span>
+                                        @endif
                                     </option>
                                 @endforeach
                             </select>

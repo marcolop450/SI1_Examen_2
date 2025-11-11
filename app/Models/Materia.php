@@ -27,13 +27,21 @@ class Materia extends Model
     {
         return [
             'activo' => 'boolean',
+            'es_electiva' => 'boolean', 
             'semestre' => 'integer',
             'horas_teoricas' => 'integer',
             'horas_practicas' => 'integer',
             'creditos' => 'integer',
+            'horas_semanales' => 'decimal:2', 
         ];
     }
-
+    
+    public function getMinutosSemanalesAttribute()
+    {
+        $horas = $this->horas_semanales ?? ($this->es_electiva ? 3 : 4.5);
+        return $horas * 60;
+    }
+    
     //Relaciones
     public function docentes()
     {

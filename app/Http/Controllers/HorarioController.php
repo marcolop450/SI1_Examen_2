@@ -152,7 +152,7 @@ class HorarioController extends Controller
             $materia = Materia::findOrFail($request->id_materia);
             $docente = Docente::findOrFail($request->id_docente);
             $grupo = Grupo::findOrFail($request->id_grupo);
-            $minutosSemanales = 270;
+            $minutosSemanales = $materia->es_electiva ? 180 : 270;
             $cantidadDias = count($request->dias);
             $minutosPorDia = round($minutosSemanales / $cantidadDias);
             
@@ -312,7 +312,7 @@ class HorarioController extends Controller
                 $diasConMismaMateria++;
             }
             
-            $minutosSemanales = 270;
+            $minutosSemanales = $materia->es_electiva ? 180 : 270;
             $minutosPorDia = round($minutosSemanales / max(1, $diasConMismaMateria));           
             $horaInicio = Carbon::createFromFormat('H:i', $request->hora_inicio);
             $horaFinal = $horaInicio->copy()->addMinutes($minutosPorDia)->format('H:i');

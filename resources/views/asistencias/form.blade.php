@@ -1,11 +1,3 @@
-<script>
-document.querySelector('form').addEventListener('submit', function(e) {
-    console.log('📤 Formulario enviándose...');
-    console.log('Username:', document.getElementById('username').value);
-    console.log('ID Horario:', document.querySelector('[name="id_horario"]').value);
-    console.log('Observaciones:', document.getElementById('observaciones').value);
-});
-</script>
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -59,27 +51,23 @@ document.querySelector('form').addEventListener('submit', function(e) {
                 </div>
             </div>
 
-            <!-- Advertencia de Estado - CORREGIDO -->
+            <!-- Advertencia de Estado -->
             @php
-                // Usar timezone de La Paz
                 $now = \Carbon\Carbon::now('America/La_Paz');
                 $horaInicio = \Carbon\Carbon::parse($horario->hora_inicio)
                     ->setDate($now->year, $now->month, $now->day)
                     ->setTimezone('America/La_Paz');
                 
-                // Usar el método del modelo para calcular minutos
                 $minutosDiferencia = \App\Models\Asistencia::calcularMinutosDiferencia(
                     $now->format('H:i:s'),
                     $horaInicio->format('H:i:s')
                 );
                 
-                // Calcular estado
                 $estadoActual = \App\Models\Asistencia::calcularEstado(
                     $now->format('H:i:s'),
                     $horaInicio->format('H:i:s')
                 );
                 
-                // Para mostrar en UI (solo valores positivos)
                 $minutosTarde = max(0, $minutosDiferencia);
             @endphp
             
@@ -131,7 +119,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
                     <h3 class="text-lg font-bold text-gray-800">Confirmar Registro de Asistencia</h3>
                 </div>
 
-                <form action="{{ route('asistencias.registrar') }}" method="POST" class="p-6">
+                <form action="{{ route('asistencias.registrar') }}" method="POST" class="p-6" id="formAsistencia">
                     @csrf
                     <input type="hidden" name="id_horario" value="{{ $horario->id }}">
 
@@ -218,4 +206,15 @@ document.querySelector('form').addEventListener('submit', function(e) {
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        document.getElementById('formAsistencia').addEventListener('submit', function(e) {
+            console.log('📤 Formulario enviándose...');
+            console.log('Username:', document.getElementById('username').value);
+            console.log('ID Horario:', document.querySelector('[name="id_horario"]').value);
+            console.log('Observaciones:', document.getElementById('observaciones').value);
+        });
+    </script>
+    @endpush
 </x-app-layout>
