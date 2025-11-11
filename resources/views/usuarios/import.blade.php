@@ -106,40 +106,6 @@
                     </div>
                 </form>
             </div>
-
-            <!-- Ejemplo Visual -->
-            <div class="bg-white overflow-hidden shadow-lg sm:rounded-lg mt-6">
-                <div class="p-6 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800">Ejemplo de Formato</h3>
-                    <p class="text-sm text-gray-600 mt-1">Así debe verse tu archivo Excel</p>
-                </div>
-                <div class="p-6 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 border border-gray-300">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border border-gray-300">nombre</th>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border border-gray-300">apellido</th>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border border-gray-300">ci</th>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border border-gray-300">correo</th>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border border-gray-300">telefono</th>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border border-gray-300">sexo</th>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 border border-gray-300">rol</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white">
-                            <tr>
-                                <td class="px-4 py-2 text-sm text-gray-600 border border-gray-300">Juan</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 border border-gray-300">Pérez</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 border border-gray-300">12345678</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 border border-gray-300">juan@ejemplo.com</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 border border-gray-300">70123456</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 border border-gray-300">M</td>
-                                <td class="px-4 py-2 text-sm text-gray-600 border border-gray-300">Docente</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
 </x-app-layout>
